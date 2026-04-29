@@ -3,97 +3,58 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Baharat Patlat AAA</title>
-
+<title>Baharat Patlat ULTRA</title>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
-
 <style>
 *{box-sizing:border-box}
-body{
-margin:0;
-font-family:'Fredoka',sans-serif;
-background:#0f172a;
-color:#fff;
-overflow:hidden;
-}
+body{margin:0;font-family:'Fredoka',sans-serif;background:#0b1220;color:#fff;overflow:hidden}
 
 #ui{
-display:flex;
-justify-content:space-between;
-padding:10px;
-font-size:14px;
-}
+display:flex;justify-content:space-between;
+padding:10px;font-size:14px;align-items:center}
 
 #flash{
-position:fixed;
-inset:0;
-background:#fff;
-opacity:0;
-pointer-events:none;
-}
-
-.flash{animation:flash .2s}
-
-@keyframes flash{
-0%{opacity:.8}
-100%{opacity:0}
-}
+position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
+.flash{animation:flash .18s}
+@keyframes flash{0%{opacity:.9}100%{opacity:0}}
 
 #wrap{
-width:100vw;
-height:calc(100vh - 40px);
-display:flex;
-align-items:center;
-justify-content:center;
-}
+width:100vw;height:calc(100vh - 40px);
+display:flex;align-items:center;justify-content:center}
 
 .board{
-width:100vmin;
-height:100vmin;
+width:100vmin;height:100vmin;
+max-width:100vw;max-height:100vw;
 display:grid;
 grid-template-columns:repeat(8,1fr);
-gap:2px;
-padding:4px;
-}
+gap:2px;padding:4px}
 
 .tile{
-background:#1e293b;
+background:#172033;
 border-radius:10px;
-display:flex;
-align-items:center;
-justify-content:center;
+display:flex;align-items:center;justify-content:center;
 position:relative;
-transition:transform .12s ease;
+transition:transform .12s ease
 }
 
 .tile img{width:92%}
 
-.bounce{animation:bounce .22s}
+.pop{animation:pop .22s}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.25)}100%{transform:scale(1)}}
 
-@keyframes bounce{
-0%{transform:scale(1)}
-50%{transform:scale(1.25)}
-100%{transform:scale(1)}
-}
+.particle{position:fixed;width:6px;height:6px;border-radius:50%;pointer-events:none}
 
-.particle{
-position:fixed;
-width:6px;
-height:6px;
-border-radius:50%;
-pointer-events:none;
-}
-
+.hint{outline:2px solid gold}
 </style>
 </head>
-
 <body>
 
 <div id="flash"></div>
 
 <div id="ui">
 <div id="moves">Hamle: 0</div>
-<div id="grams">Gram: 0</div>
+<div id="score">Skor: 0</div>
+<div id="level">Lvl: 1</div>
 </div>
 
 <div id="wrap">
@@ -101,7 +62,6 @@ pointer-events:none;
 </div>
 
 <script>
-
 const types=["zerdecal","safran","pulbiber","karabiber","kekik","tarcin","sumak","anason"];
 
 let board=[];
@@ -109,29 +69,84 @@ let queue=[];
 let processing=false;
 
 let moves=0;
-let grams=0;
+let score=0;
+let level=1;
 
 const movesEl=document.getElementById("moves");
-const gramsEl=document.getElementById("grams");
+const scoreEl=document.getElementById("score");
+const levelEl=document.getElementById("level");
 
-function rand(){
-return types[Math.floor(Math.random()*types.length)];
+function rand(){return types[Math.floor(Math.random()*types.length)]}
+
+// SAFE START BOARD (NO MATCH)
+function generateBoard(){
+let arr;
+do{
+arr=[];
+for(let i=0;i<64;i++) arr.push(rand());
+}while(hasMatch(arr));
+return arr;
 }
 
-/* ================= INIT ================= */
+function hasMatch(arr){
+for(let r=0;r<8;r++){
+for(let c=0;c<6;c++){
+let i=r*8+c;
+let t=arr[i];
+if(t&&t===arr[i+1]&&t===arr[i+2]) return true;
+}
+}
+for(let c=0;c<8;c++){
+for(let r=0;r<6;r++){
+let i=r*8+c;
+let t=arr[i];
+if(t&&t===arr[i+8]&&t===arr[i+16]) return true;
+}
+}
+return false;
+}
+
 function init(){
 const b=document.getElementById("board");
 b.innerHTML="";
 board=[];
 
+let start=generateBoard();
+
 for(let i=0;i<64;i++){
 let d=document.createElement("div");
 d.className="tile";
 
-board.push({type:rand(),el:d});
+board.push({type:start[i],el:d});
 
-d.addEventListener("touchstart",e=>start(e,i));
-d.addEventListener("touchend",e=>end(e,i));
+// POINTER DRAG (ULTRA UX)
+let startX,startY,from=i;
+
+d.addEventListener("touchstart",e=>{
+startX=e.touches[0].clientX;
+startY=e.touches[0].clientY;
+from=i;
+});
+
+d.addEventListener("touchend",e=>{
+if(processing) return;
+
+let dx=e.changedTouches[0].clientX-startX;
+let dy=e.changedTouches[0].clientY-startY;
+
+let to=null;
+
+if(Math.abs(dx)>Math.abs(dy)){
+if(dx>25) to=from+1;
+else if(dx<-25) to=from-1;
+}else{
+if(dy>25) to=from+8;
+else if(dy<-25) to=from-8;
+}
+
+if(valid(from,to)) queue.push({from,to});
+processQueue();
+});
 
 b.appendChild(d);
 }
@@ -139,215 +154,132 @@ b.appendChild(d);
 draw();
 }
 
-/* ================= DRAW ================= */
 function draw(){
 board.forEach(t=>{
 t.el.innerHTML=`<img src="img/${t.type}.png">`;
 });
 }
 
-/* ================= INPUT ================= */
-let touch=null;
-
-function start(e,i){
-touch={
-x:e.touches[0].clientX,
-y:e.touches[0].clientY,
-i
-};
-}
-
-function end(e){
-if(!touch || processing) return;
-
-let dx=e.changedTouches[0].clientX-touch.x;
-let dy=e.changedTouches[0].clientY-touch.y;
-
-let from=touch.i;
-let to=null;
-
-if(Math.abs(dx)>Math.abs(dy)){
-if(dx>20) to=from+1;
-else if(dx<-20) to=from-1;
-}else{
-if(dy>20) to=from+8;
-else if(dy<-20) to=from-8;
-}
-
-if(valid(from,to)){
-queue.push({from,to});
-processQueue();
-}
-
-touch=null;
-}
-
 function valid(a,b){
 if(b<0||b>=64) return false;
-
 let ar=Math.floor(a/8);
 let br=Math.floor(b/8);
-
 if(Math.abs(a-b)===1 && ar!==br) return false;
-
 return true;
 }
 
-/* ================= QUEUE ================= */
 function processQueue(){
 if(processing) return;
 if(queue.length===0) return;
 
 processing=true;
-
-let move=queue.shift();
-execute(move.from,move.to);
+let m=queue.shift();
+execute(m.from,m.to);
 }
 
-/* ================= EXEC ================= */
 function execute(a,b){
-
 swap(a,b);
-
-let matches=findMatches();
+let matches=find();
 
 if(matches.length===0){
-
 setTimeout(()=>{
-swap(a,b); // revert
+swap(a,b);
 processing=false;
 processQueue();
 },120);
-
 return;
 }
 
-resolveBoard().then(()=>{
+resolve(matches).then(()=>{
 processing=false;
 processQueue();
 });
 }
 
-/* ================= SWAP ================= */
 function swap(a,b){
-let t=board[a];
-board[a]=board[b];
-board[b]=t;
+[board[a],board[b]]=[board[b],board[a]];
 draw();
 }
 
-/* ================= MATCH ================= */
-function findMatches(){
+function find(){
 let res=[];
 
-// horizontal
 for(let r=0;r<8;r++){
 for(let c=0;c<6;c++){
-let i=r*8+c;
-let t=board[i].type;
-
-if(t && t===board[i+1].type && t===board[i+2].type){
-res.push(i,i+1,i+2);
-}
+let i=r*8+c,t=board[i].type;
+if(t&&t===board[i+1].type&&t===board[i+2].type) res.push(i,i+1,i+2);
 }
 }
 
-// vertical
 for(let c=0;c<8;c++){
 for(let r=0;r<6;r++){
-let i=r*8+c;
-let t=board[i].type;
-
-if(t && t===board[i+8].type && t===board[i+16].type){
-res.push(i,i+8,i+16);
-}
+let i=r*8+c,t=board[i].type;
+if(t&&t===board[i+8].type&&t===board[i+16].type) res.push(i,i+8,i+16);
 }
 }
 
 return [...new Set(res)];
 }
 
-/* ================= CORE LOOP (AAA FIX) ================= */
-async function resolveBoard(){
+async function resolve(matches){
 
-let matches=findMatches();
+while(matches.length){
 
-while(matches.length>0){
-
-// clear
 matches.forEach(i=>{
 board[i].type=null;
-board[i].el.classList.add("bounce");
+board[i].el.classList.add("pop");
 spawn(board[i].el);
-grams++;
+score+=10;
 });
 
 updateUI();
 draw();
+await wait(110);
 
-await wait(120);
-
-// gravity
 gravity();
-draw();
-
-await wait(120);
-
-// refill
 fill();
 draw();
+await wait(110);
 
-await wait(120);
-
-// next check
-matches=findMatches();
+matches=find();
 }
 
+level=Math.floor(score/300)+1;
+levelEl.innerText="Lvl: "+level;
 }
 
-/* ================= GRAVITY ================= */
 function gravity(){
-
 for(let c=0;c<8;c++){
-
 let col=[];
-
 for(let r=7;r>=0;r--){
 let i=r*8+c;
 if(board[i].type) col.push(board[i].type);
 }
-
 for(let r=7;r>=0;r--){
 let i=r*8+c;
 board[i].type=col.shift()||null;
 }
-
+}
 }
 
-}
-
-/* ================= FILL ================= */
 function fill(){
 for(let i=0;i<64;i++){
 if(!board[i].type) board[i].type=rand();
 }
 }
 
-/* ================= FX ================= */
 function spawn(el){
-let rect=el.getBoundingClientRect();
-
+let r=el.getBoundingClientRect();
 for(let i=0;i<10;i++){
 let p=document.createElement("div");
 p.className="particle";
 p.style.background=`hsl(${Math.random()*360},100%,60%)`;
-p.style.left=rect.left+rect.width/2+"px";
-p.style.top=rect.top+rect.height/2+"px";
-
+p.style.left=r.left+r.width/2+"px";
+p.style.top=r.top+r.height/2+"px";
 document.body.appendChild(p);
 
-let dx=(Math.random()-0.5)*140;
-let dy=(Math.random()-0.5)*140;
+let dx=(Math.random()-0.5)*160;
+let dy=(Math.random()-0.5)*160;
 
 p.animate([
 {transform:"translate(0,0)",opacity:1},
@@ -356,32 +288,24 @@ p.animate([
 
 setTimeout(()=>p.remove(),450);
 }
-
 flash();
 }
 
-/* ================= FLASH ================= */
 function flash(){
 let f=document.getElementById("flash");
 f.classList.add("flash");
-setTimeout(()=>f.classList.remove("flash"),200);
+setTimeout(()=>f.classList.remove("flash"),180);
 }
 
-/* ================= UI ================= */
 function updateUI(){
 moves++;
 movesEl.innerText="Hamle: "+moves;
-gramsEl.innerText="Gram: "+grams;
+scoreEl.innerText="Skor: "+score;
 }
 
-/* ================= UTIL ================= */
-function wait(ms){
-return new Promise(r=>setTimeout(r,ms));
-}
+function wait(ms){return new Promise(r=>setTimeout(r,ms));}
 
-/* ================= START ================= */
 init();
-
 </script>
 
 </body>
