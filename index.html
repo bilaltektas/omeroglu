@@ -9,64 +9,81 @@
 body{margin:0;font-family:'Fredoka',sans-serif;background:#0f172a;color:#fff;text-align:center;overflow:hidden}
 #topbar{display:flex;justify-content:space-between;padding:10px;font-size:16px}
 .board{width:100vw;height:100vw;max-width:640px;max-height:640px;margin:auto;display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
-.tile{background:#1e293b;border-radius:14px;display:flex;align-items:center;justify-content:center;position:relative}
+.tile{background:#1e293b;border-radius:14px;display:flex;align-items:center;justify-content:center;position:relative;transition:.25s}
 .tile img{width:100%}
+.ice{background:#93c5fd55}
+.lock{background:#64748b}
 .power{position:absolute;font-size:22px}
-.particle{position:fixed;width:6px;height:6px;border-radius:50%;background:gold;pointer-events:none}
-.comboText{position:fixed;top:45%;left:50%;transform:translate(-50%,-50%);font-size:34px;color:gold;animation:fade .8s forwards}
-@keyframes fade{to{opacity:0;transform:translate(-50%,-70%)}}
+.comboText{position:fixed;top:45%;left:50%;transform:translate(-50%,-50%);font-size:40px;color:gold;animation:comboAnim 1.2s forwards}
+@keyframes comboAnim{
+ 0%{transform:translate(-50%,-50%) scale(0.5);opacity:0}
+ 50%{transform:translate(-50%,-60%) scale(1.2);opacity:1}
+ 100%{transform:translate(-50%,-80%) scale(1);opacity:0}
+}
 </style>
 </head>
 <body>
 <h2>🌶️ Baharat Patlat</h2>
-<div id="topbar"><div id="moves"></div><div id="gram"></div><div id="goal"></div></div>
+<div id="topbar"><div id="moves"></div><div id="goal"></div></div>
 <div id="game"><div id="board" class="board"></div></div>
 
 <script>
 const types=["zerdecal","safran","pulbiber","karabiber","kekik","tarcin","sumak","anason"];
-let board=[],moves=30,gram=0,combo=0,targetType=null,targetCount=20;
+let board=[],moves=30,combo=0,level=1,targetType,targetCount;
 
 const movesEl=document.getElementById("moves");
-const gramEl=document.getElementById("gram");
 const goalEl=document.getElementById("goal");
+
+function startLevel(lvl){
+ level=lvl;
+ moves=level*5;
+
+ targetType=types[Math.floor(Math.random()*types.length)];
+ targetCount=15+level;
+
+ init();
+ updateUI();
+}
 
 function updateUI(){
  movesEl.innerText="Hamle: "+moves;
- gramEl.innerText="Gram: "+gram;
  goalEl.innerText="Hedef: "+targetType+" x"+targetCount;
 }
 
 function init(){
- targetType=types[Math.floor(Math.random()*types.length)];
- targetCount=20;
-
  const b=document.getElementById("board");
  b.innerHTML="";
  board=[];
+
  for(let i=0;i<64;i++){
-  let t={type:rand(),power:null,el:null};
+  let t={type:rand(),power:null,ice:false,lock:false,el:null};
+
+  // LEVEL DESIGN
+  if(level>10 && level<=20 && Math.random()<0.2) t.ice=true;
+  if(level>20 && level<=30 && Math.random()<0.15) t.lock=true;
+
   let d=document.createElement("div");
   d.className="tile";
   t.el=d;
+
   d.addEventListener("touchstart",e=>start(e,i));
   d.addEventListener("touchend",e=>end(e,i));
+
   board.push(t);
   b.appendChild(d);
  }
- draw();updateUI();
+ draw();
 }
 
 function rand(){return types[Math.floor(Math.random()*types.length)]}
 
 function draw(){
  board.forEach(t=>{
+  t.el.className="tile";
+  if(t.ice) t.el.classList.add("ice");
+  if(t.lock) t.el.classList.add("lock");
+
   t.el.innerHTML=`<img src="img/${t.type}.png">`;
-  if(t.power){
-   let p=document.createElement("div");
-   p.className="power";
-   p.innerText=t.power==="rocket"?"🚀":"💣";
-   t.el.appendChild(p);
-  }
  });
 }
 
@@ -95,6 +112,7 @@ function valid(a,b){
  if(b<0||b>=64) return false;
  let ar=Math.floor(a/8),br=Math.floor(b/8);
  if(Math.abs(a-b)===1 && ar!==br) return false;
+ if(board[a].lock||board[b].lock) return false;
  return true;
 }
 
@@ -113,18 +131,23 @@ function swap(a,b){[board[a],board[b]]=[board[b],board[a]];draw()}
 
 function findMatches(){
  let res=[];
+
+ // yatay
  for(let r=0;r<8;r++){
   for(let c=0;c<6;c++){
    let i=r*8+c,t=board[i].type;
    if(t&&t===board[i+1].type&&t===board[i+2].type) res.push(i,i+1,i+2);
   }
  }
+
+ // dikey
  for(let c=0;c<8;c++){
   for(let r=0;r<6;r++){
    let i=r*8+c,t=board[i].type;
    if(t&&t===board[i+8].type&&t===board[i+16].type) res.push(i,i+8,i+16);
   }
  }
+
  return [...new Set(res)];
 }
 
@@ -132,57 +155,24 @@ function process(m){
  combo++;
  showCombo(combo);
 
- if(m.length>=5) board[m[0]].power="bomb";
- else if(m.length>=4) board[m[0]].power="rocket";
-
  m.forEach(i=>{
-  spawnParticles(board[i].el);
+  let t=board[i];
 
-  if(board[i].type===targetType){
-   targetCount--;
-  }
+  if(t.ice){ t.ice=false; return; }
 
-  board[i].type=null;
-  board[i].power=null;
+  if(t.type===targetType) targetCount--;
+
+  t.type=null;
  });
 
  setTimeout(()=>{
-  drop();refill();
-  gram+=m.length*combo;
+  drop(); refill();
   updateUI();
 
-  if(targetCount<=0) win();
+  if(targetCount<=0){ alert("Level Tamam!"); startLevel(level+1); }
+
   check();
- },200);
-}
-
-function spawnParticles(el){
- let rect=el.getBoundingClientRect();
- for(let i=0;i<10;i++){
-  let p=document.createElement("div");
-  p.className="particle";
-  p.style.left=rect.left+"px";
-  p.style.top=rect.top+"px";
-  document.body.appendChild(p);
-
-  let dx=(Math.random()-0.5)*100;
-  let dy=(Math.random()-0.5)*100;
-
-  p.animate([
-   {transform:"translate(0,0)",opacity:1},
-   {transform:`translate(${dx}px,${dy}px)`,opacity:0}
-  ],{duration:500});
-
-  setTimeout(()=>p.remove(),500);
- }
-}
-
-function showCombo(x){
- let d=document.createElement("div");
- d.className="comboText";
- d.innerText="COMBO x"+x;
- document.body.appendChild(d);
- setTimeout(()=>d.remove(),800);
+ },300);
 }
 
 function drop(){
@@ -205,7 +195,7 @@ function drop(){
 
 function refill(){
  for(let i=0;i<64;i++){
-  if(!board[i].type){ board[i].type=rand(); }
+  if(!board[i].type) board[i].type=rand();
  }
  draw();
 }
@@ -215,12 +205,15 @@ function check(){
  if(m.length) process(m);
 }
 
-function win(){
- alert("Kazandın!");
- location.reload();
+function showCombo(x){
+ let d=document.createElement("div");
+ d.className="comboText";
+ d.innerText="COMBO x"+x;
+ document.body.appendChild(d);
+ setTimeout(()=>d.remove(),1200);
 }
 
-init();
+startLevel(1);
 </script>
 </body>
 </html>
