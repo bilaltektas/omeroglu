@@ -2,341 +2,451 @@
 
 <html lang="tr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Baharat Patlat ELITE</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Baharat Patlat • ELITE</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
 
 <style>
+:root{
+  --bg1:#0f172a; --bg2:#1e293b; --card:#334155;
+  --gold:#facc15; --accent:#22c55e; --danger:#ef4444;
+}
+*{box-sizing:border-box}
 body{
-  margin:0;
-  background:#0f172a;
-  font-family:Arial;
-  color:#fff;
-  text-align:center;
-  overflow:hidden;
+  margin:0; font-family:'Fredoka',system-ui,-apple-system,Segoe UI,Roboto;
+  color:#fff; text-align:center;
+  background:radial-gradient(1200px 800px at 50% -10%, #1f2a44 0%, var(--bg1) 60%);
+  overflow-x:hidden;
 }
+h1{margin:10px 0 6px; font-weight:700; letter-spacing:.5px}
 
-h1{margin:10px;}
-
-#topbar{
-  display:flex;
-  justify-content:center;
-  gap:20px;
-  margin-bottom:10px;
+.top{
+  display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:10px;
 }
+.badge{
+  background:linear-gradient(180deg,#3b4a67,#24314a);
+  padding:8px 12px; border-radius:12px; font-size:13px;
+  box-shadow:0 6px 16px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.08);
+}
+.badge b{color:#e5e7eb}
+#levelName{font-weight:700; color:#a7f3d0}
 
 .board{
-  width:92vmin;
-  height:92vmin;
-  margin:auto;
-  display:grid;
-  grid-template-columns:repeat(8,1fr);
-  gap:6px;
+  width:92vmin; height:92vmin; margin:8px auto 16px;
+  display:grid; grid-template-columns:repeat(8,1fr); gap:6px;
+  will-change:transform;
 }
-
 .tile{
-  background:#1e293b;
-  border-radius:14px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-  position:relative;
-  transition:.15s;
+  background:linear-gradient(180deg,#1f2a44,#172033);
+  border-radius:14px; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; position:relative; user-select:none;
+  box-shadow:0 8px 20px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+  transition:transform .12s ease;
 }
+.tile:hover{ transform:scale(1.04) }
+.tile img{ width:78%; height:78%; object-fit:contain; pointer-events:none }
 
-.tile img{width:80%;}
+.selected{ outline:3px solid var(--gold) }
 
-.selected{outline:3px solid gold;}
-
-.explode{animation:explode .3s;}
 @keyframes explode{
-  0%{transform:scale(1);}
-  50%{transform:scale(1.4);opacity:.6;}
-  100%{transform:scale(0);opacity:0;}
+  0%{transform:scale(1); opacity:1}
+  60%{transform:scale(1.35); opacity:.6}
+  100%{transform:scale(.1); opacity:0}
 }
+.explode{ animation:explode .22s ease forwards }
 
-.fall{animation:fall .3s;}
 @keyframes fall{
-  from{transform:translateY(-40px);}
-  to{transform:translateY(0);}
+  from{ transform:translateY(-28px) }
+  to{ transform:translateY(0) }
 }
+.fall{ animation:fall .18s ease }
 
 @keyframes shake{
-  0%{transform:translate(0);}
-  25%{transform:translate(5px);}
-  50%{transform:translate(-5px);}
-  75%{transform:translate(5px);}
-  100%{transform:translate(0);}
+  0%{transform:translate(0)}
+  25%{transform:translate(6px)}
+  50%{transform:translate(-6px)}
+  75%{transform:translate(6px)}
+  100%{transform:translate(0)}
 }
 
-.particle{
-  position:absolute;
-  width:6px;
-  height:6px;
-  background:orange;
-  border-radius:50%;
-  pointer-events:none;
-  animation:particle .6s forwards;
+.combo{
+  position:fixed; left:50%; top:42%; transform:translate(-50%,-50%);
+  font-size:42px; font-weight:700; color:var(--gold);
+  text-shadow:0 6px 18px rgba(250,204,21,.35);
+  pointer-events:none; opacity:0;
 }
+@keyframes comboIn{
+  0%{opacity:0; transform:translate(-50%,-20%) scale(.7)}
+  40%{opacity:1; transform:translate(-50%,-50%) scale(1.05)}
+  100%{opacity:0; transform:translate(-50%,-85%) scale(1)}
+}
+.combo.show{ animation:comboIn .8s ease forwards }
 
-@keyframes particle{
-  to{
-    transform:translate(var(--x), var(--y));
-    opacity:0;
-  }
-}
-
-.comboText{
-  position:fixed;
-  top:40%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  font-size:40px;
-  color:gold;
-  pointer-events:none;
-  animation:fadeUp .8s forwards;
-}
-
-@keyframes fadeUp{
-  0%{opacity:1; transform:translate(-50%,-50%);}
-  100%{opacity:0; transform:translate(-50%,-80%);}
-}
+.stars{ letter-spacing:2px }
+.footer{opacity:.7; font-size:12px; margin-bottom:10px}
 </style>
 
 </head>
 
 <body>
 
-<h1>🌶️ Baharat Patlat ELITE</h1>
+<h1>🌶️ Baharat Patlat • ELITE</h1>
 
-<div id="topbar">
-  <div id="score">Skor: 0</div>
-  <div id="moves">Hamle: 20</div>
-  <div id="goal">Hedef: 5000</div>
-  <div id="coins">💰 0</div>
+<div class="top">
+  <div class="badge"><b id="lvl">Level:</b> 1</div>
+  <div class="badge"><b id="levelName">Acemi Aşçı</b></div>
+  <div class="badge"><b>Gram:</b> <span id="gram">0g</span></div>
+  <div class="badge"><b>Hedef:</b> <span id="goal">30g</span></div>
+  <div class="badge"><b>Hamle:</b> <span id="moves">20</span></div>
+  <div class="badge"><b>Yıldız:</b> <span id="stars" class="stars">☆☆☆</span></div>
 </div>
 
-<div class="board" id="board"></div>
+<div id="board" class="board"></div>
+<canvas id="fx" style="position:fixed; inset:0; pointer-events:none;"></canvas>
+<div id="combo" class="combo">x2</div>
+
+<div class="footer">İpucu: Uzun zincirler daha fazla gram kazandırır.</div>
 
 <script>
+/* ===================== CONFIG ===================== */
 const SIZE = 8;
-const spices = ["zerdecal","safran","pulbiber","karabiber","kekik","tarcin","sumak","anason"];
+const TYPES = ["zerdecal","safran","pulbiber","karabiber","kekik","tarcin","sumak","anason"];
+const LEVEL_NAMES = [
+  "Acemi Aşçı","Tuz Ustası","Kekik Avcısı","Pul Biber Çırağı","Safran Koleksiyoncusu",
+  "Karabiber Uzmanı","Tarçın Şefi","Sumak Sihirbazı","Anason Simyacısı","Baharat Gurmesi"
+];
 
-let board=[];
-let selected=null;
-let score=0;
-let moves=20;
-let goal=5000;
-let coins=0;
-let combo=1;
-let stats={};
+/* ===================== STATE ===================== */
+let board = [];
+let selected = null;
+let gram = 0, level = 1, moves = 20, goal = 30, combo = 1;
+let busy = false; // animasyon sırasında input kilidi
 
-const boardEl=document.getElementById("board");
+/* ===================== DOM ===================== */
+const boardEl = document.getElementById("board");
+const gramEl  = document.getElementById("gram");
+const goalEl  = document.getElementById("goal");
+const movesEl = document.getElementById("moves");
+const lvlEl   = document.getElementById("lvl");
+const nameEl  = document.getElementById("levelName");
+const starsEl = document.getElementById("stars");
+const comboEl = document.getElementById("combo");
 
-function rand(){return spices[Math.floor(Math.random()*spices.length)];}
+/* ===================== UTILS ===================== */
+const rand = () => TYPES[(Math.random()*TYPES.length)|0];
+
+function setLevelName(){
+  nameEl.textContent = LEVEL_NAMES[Math.min(level-1, LEVEL_NAMES.length-1)] || "Usta Şef";
+}
 
 function createTile(type){
-  return {type:type,el:null};
+  const el = document.createElement("div");
+  el.className = "tile";
+  const t = { type, el };
+  el.onclick = () => onClick(t);
+  renderTile(t);
+  return t;
 }
 
-function renderTile(tile){
-  if(!tile.type){
-    tile.el.innerHTML="";
-    return;
-  }
-  tile.el.innerHTML=`<img src="img/${tile.type}.png">`;
+function renderTile(t){
+  t.el.innerHTML = t.type ? `<img src="${t.type}.png" alt="">` : "";
 }
 
-function init(){
-  board=[];
-  boardEl.innerHTML="";
+function updateUI(){
+  gramEl.textContent = gram + "g";
+  goalEl.textContent = goal + "g";
+  movesEl.textContent = moves;
+  lvlEl.textContent = "Level: " + level;
+  setLevelName();
+  const s = getStars();
+  starsEl.textContent = (s>=1?"⭐":"☆") + (s>=2?"⭐":"☆") + (s>=3?"⭐":"☆");
+}
+
+/* ===================== INIT ===================== */
+function initBoard(){
+  board = [];
+  boardEl.innerHTML = "";
   for(let i=0;i<SIZE*SIZE;i++){
-    let t=createTile(rand());
-    let div=document.createElement("div");
-    div.className="tile";
-    t.el=div;
-    div.onclick=()=>clickTile(i);
+    const t = createTile(rand());
     board.push(t);
-    boardEl.appendChild(div);
+    boardEl.appendChild(t.el);
   }
-  draw();
+  // ilk kurulumda hazır match varsa temizle (free cascade yok)
+  clearInitialMatches();
+  updateUI();
 }
 
-function draw(){ board.forEach(renderTile); }
+function clearInitialMatches(){
+  let m = findMatches();
+  while(m.length){
+    m.forEach(i => board[i].type = rand());
+    m = findMatches();
+  }
+  board.forEach(renderTile);
+}
 
-function clickTile(i){
-  if(moves<=0)return;
-  if(selected===null){
-    selected=i;
+/* ===================== INPUT ===================== */
+function onClick(tile){
+  if(busy || moves<=0) return;
+
+  const i = board.indexOf(tile);
+  if(selected == null){
+    selected = i;
     board[i].el.classList.add("selected");
   }else{
-    if(isAdj(selected,i)) swap(selected,i,true);
-    board[selected].el.classList.remove("selected");
-    selected=null;
+    const a = selected, b = i;
+    board[a].el.classList.remove("selected");
+    selected = null;
+
+    if(isAdjacent(a,b)){
+      doSwap(a,b, true);
+    }
   }
 }
 
-function isAdj(a,b){
-  let ar=Math.floor(a/SIZE), ac=a%SIZE;
-  let br=Math.floor(b/SIZE), bc=b%SIZE;
+function isAdjacent(a,b){
+  const ar=(a/SIZE)|0, ac=a%SIZE;
+  const br=(b/SIZE)|0, bc=b%SIZE;
   return Math.abs(ar-br)+Math.abs(ac-bc)===1;
 }
 
-function swap(a,b,consume){
-  [board[a],board[b]]=[board[b],board[a]];
-  draw();
-  let m=findMatches();
+/* ===================== CORE ===================== */
+function doSwap(a,b, consumeMove){
+  swap(a,b);
+  const m = findMatches();
   if(!m.length){
-    setTimeout(()=>{[board[a],board[b]]=[board[b],board[a]]; draw();},200);
+    // geri al
+    setTimeout(()=>swap(a,b), 120);
   }else{
-    if(consume){moves--; updateUI();}
+    if(consumeMove){ moves--; updateUI(); }
     processMatches(m);
   }
 }
 
+function swap(a,b){
+  const ta = board[a], tb = board[b];
+  [board[a], board[b]] = [tb, ta];
+  // DOM yeniden sıralama (ucuz: repaint yok, sadece içerik değiştiriyoruz)
+  renderTile(board[a]); renderTile(board[b]);
+}
+
 function findMatches(){
-  let res=[];
+  const res = new Set();
+  // yatay
   for(let r=0;r<SIZE;r++){
-    for(let c=0;c<SIZE-2;c++){
-      let i=r*SIZE+c;
-      let t=board[i].type;
-      if(t && t===board[i+1].type && t===board[i+2].type){
-        res.push(i,i+1,i+2);
+    let streak=1;
+    for(let c=1;c<SIZE;c++){
+      const i=r*SIZE+c, p=r*SIZE+c-1;
+      if(board[i].type && board[i].type===board[p].type){
+        streak++;
+      }else{
+        if(streak>=3){
+          for(let k=0;k<streak;k++) res.add(p-k);
+        }
+        streak=1;
       }
     }
+    if(streak>=3){
+      const end=r*SIZE+SIZE-1;
+      for(let k=0;k<streak;k++) res.add(end-k);
+    }
   }
+  // dikey
   for(let c=0;c<SIZE;c++){
-    for(let r=0;r<SIZE-2;r++){
-      let i=r*SIZE+c;
-      let t=board[i].type;
-      if(t && t===board[i+SIZE].type && t===board[i+SIZE*2].type){
-        res.push(i,i+SIZE,i+SIZE*2);
+    let streak=1;
+    for(let r=1;r<SIZE;r++){
+      const i=r*SIZE+c, p=(r-1)*SIZE+c;
+      if(board[i].type && board[i].type===board[p].type){
+        streak++;
+      }else{
+        if(streak>=3){
+          for(let k=0;k<streak;k++) res.add(p-k*SIZE);
+        }
+        streak=1;
       }
     }
+    if(streak>=3){
+      const end=(SIZE-1)*SIZE+c;
+      for(let k=0;k<streak;k++) res.add(end-k*SIZE);
+    }
   }
-  return [...new Set(res)];
+  return [...res];
 }
 
-function spawnParticles(tile){
-  for(let i=0;i<8;i++){
-    const p=document.createElement("div");
-    p.className="particle";
-    p.style.left=tile.offsetLeft+"px";
-    p.style.top=tile.offsetTop+"px";
-    p.style.setProperty("--x",(Math.random()*80-40)+"px");
-    p.style.setProperty("--y",(Math.random()*80-40)+"px");
-    document.body.appendChild(p);
-    setTimeout(()=>p.remove(),600);
+/* ===================== FX (Canvas Particles) ===================== */
+const fx = document.getElementById("fx");
+const ctx = fx.getContext("2d");
+let DPR = Math.min(2, window.devicePixelRatio || 1);
+function resizeFx(){
+  fx.width = innerWidth * DPR;
+  fx.height = innerHeight * DPR;
+  fx.style.width = innerWidth + "px";
+  fx.style.height = innerHeight + "px";
+}
+resizeFx();
+window.addEventListener("resize", resizeFx);
+
+const particles = [];
+function spawnParticles(x,y,color="#f59e0b"){
+  for(let i=0;i<14;i++){
+    particles.push({
+      x:x*DPR, y:y*DPR,
+      vx:(Math.random()*2-1)*3*DPR,
+      vy:(Math.random()*2-1)*3*DPR,
+      life: 24 + Math.random()*12,
+      size: (2+Math.random()*3)*DPR,
+      color
+    });
   }
 }
+function tickParticles(){
+  ctx.clearRect(0,0,fx.width,fx.height);
+  for(let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.life -= 1;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.05*DPR; // gravity
+    ctx.globalAlpha = Math.max(0, p.life/30);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x, p.y, p.size, p.size);
+    if(p.life<=0) particles.splice(i,1);
+  }
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(tickParticles);
+}
+requestAnimationFrame(tickParticles);
 
-function showCombo(x){
-  const el=document.createElement("div");
-  el.className="comboText";
-  el.innerText="COMBO x"+x;
-  document.body.appendChild(el);
-  setTimeout(()=>el.remove(),800);
+function showCombo(mult){
+  comboEl.textContent = "x" + mult;
+  comboEl.classList.remove("show"); // restart
+  void comboEl.offsetWidth;
+  comboEl.classList.add("show");
 }
 
 function screenShake(){
-  document.body.style.animation="shake .3s";
-  setTimeout(()=>document.body.style.animation="",300);
+  document.body.style.animation="shake .25s";
+  setTimeout(()=>document.body.style.animation="", 250);
 }
 
-function processMatches(m){
+/* ===================== RESOLVE ===================== */
+function processMatches(indices){
+  busy = true;
   combo++;
-  if(combo>1) showCombo(combo);
-  if(m.length>=5) screenShake();
 
-  m.forEach(i=>{
-    spawnParticles(board[i].el);
-    track(board[i].type);
-    board[i].el.classList.add("explode");
+  if(combo>1) showCombo(combo);
+  if(indices.length>=5) screenShake();
+
+  // explode + particle
+  indices.forEach(i=>{
+    const el = board[i].el;
+    el.classList.add("explode");
+    const rect = el.getBoundingClientRect();
+    spawnParticles(rect.left + rect.width/2, rect.top + rect.height/2);
   });
 
   setTimeout(()=>{
-    m.forEach(i=>board[i]=createTile(null));
-    score+=m.length*100*combo;
+    // temizle
+    indices.forEach(i=>{
+      board[i].type = null;
+      board[i].el.classList.remove("explode");
+      renderTile(board[i]);
+    });
+
+    // 🎯 GRAM (zorlaştırılmış, combo ile ölçekli)
+    gram += Math.floor(indices.length * (1 + combo*0.6));
+
     updateUI();
     drop();
-  },300);
+  }, 180);
 }
 
 function drop(){
+  // kolon bazlı düşme
   for(let c=0;c<SIZE;c++){
     for(let r=SIZE-1;r>=0;r--){
-      let i=r*SIZE+c;
+      const i=r*SIZE+c;
       if(!board[i].type){
+        // yukarıdan ilk doluyu çek
         for(let k=r-1;k>=0;k--){
-          let above=k*SIZE+c;
+          const above = k*SIZE+c;
           if(board[above].type){
-            board[i]=board[above];
-            board[above]=createTile(null);
+            board[i].type = board[above].type;
+            board[above].type = null;
             break;
           }
         }
-        if(!board[i].type) board[i]=createTile(rand());
+        // hâlâ boşsa yeni üret
+        if(!board[i].type){
+          board[i].type = rand();
+        }
       }
     }
   }
 
-  board.forEach(t=>t.el.classList.add("fall"));
+  // animasyon + render
+  board.forEach(t=>{
+    t.el.classList.add("fall");
+    renderTile(t);
+  });
 
   setTimeout(()=>{
     board.forEach(t=>t.el.classList.remove("fall"));
-    draw();
-    let m=findMatches();
-    if(m.length) processMatches(m);
-    else{ combo=1; checkEnd(); }
-  },300);
+
+    const m = findMatches();
+    if(m.length){
+      processMatches(m); // cascade
+    }else{
+      combo = 1;
+      busy = false;
+      endCheck();
+    }
+  }, 160);
 }
 
-function track(type){
-  stats[type]=(stats[type]||0)+1;
+/* ===================== END / LEVEL ===================== */
+function getStars(){
+  if(gram >= goal*1.5) return 3;
+  if(gram >= goal*1.2) return 2;
+  if(gram >= goal) return 1;
+  return 0;
 }
 
-function favorite(){
-  return Object.keys(stats).sort((a,b)=>stats[b]-stats[a])[0];
+function nextLevel(){
+  level++;
+  // 🎯 Zorluk eğrisi: 20–30 level civarı ~100g
+  goal = Math.floor(30 + level*4 + Math.pow(level,1.5));
+  moves = Math.max(14, 24 - Math.floor(level/3));
+  gram = 0; combo = 1;
+  initBoard();
 }
 
-function reward(){
-  let stars = score>=goal*1.5?3:score>=goal*1.1?2:score>=goal?1:0;
-  let reward = stars*50;
-  coins+=reward;
-
-  alert(
-    "⭐ "+stars+" Yıldız\n"+
-    "💰 "+reward+" Coin\n"+
-    "🏆 Favori: "+(favorite()||"-")
-  );
-}
-
-function checkEnd(){
-  if(score>=goal){
-    setTimeout(()=>{reward(); init(); reset();},300);
+function endCheck(){
+  if(gram >= goal){
+    setTimeout(()=>{
+      alert("🎉 Level tamamlandı!\n⭐ " + getStars() + " yıldız");
+      nextLevel();
+      updateUI();
+    }, 120);
   }else if(moves<=0){
-    setTimeout(()=>{alert("❌ Kaybettin"); init(); reset();},300);
+    setTimeout(()=>{
+      alert("❌ Başarısız! Tekrar dene.");
+      gram = 0; combo = 1;
+      initBoard();
+      updateUI();
+    }, 120);
   }
 }
 
-function reset(){
-  score=0;
-  moves=20;
-  combo=1;
-  stats={};
+/* ===================== BOOT ===================== */
+function boot(){
+  setLevelName();
+  initBoard();
   updateUI();
 }
-
-function updateUI(){
-  document.getElementById("score").innerText="Skor: "+score;
-  document.getElementById("moves").innerText="Hamle: "+moves;
-  document.getElementById("goal").innerText="Hedef: "+goal;
-  document.getElementById("coins").innerText="💰 "+coins;
-}
-
-init();
-updateUI();
+boot();
 </script>
 
 </body>
