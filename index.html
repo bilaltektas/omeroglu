@@ -8,35 +8,38 @@
 <style>
 body{margin:0;font-family:'Fredoka',sans-serif;background:#0f172a;color:#fff;text-align:center;overflow:hidden}
 #topbar{display:flex;justify-content:space-between;padding:10px;font-size:16px}
-.board{width:100vw;height:100vw;max-width:640px;max-height:640px;margin:auto;display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
-.tile{background:#1e293b;border-radius:14px;display:flex;align-items:center;justify-content:center;position:relative;transition:.15s}
-.tile img{width:95%}
+.board{width:100vw;height:100vw;max-width:640px;max-height:640px;margin:auto;display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
+.tile{background:#1e293b;border-radius:14px;display:flex;align-items:center;justify-content:center;position:relative}
+.tile img{width:100%}
 .power{position:absolute;font-size:22px}
-.glow{box-shadow:0 0 12px gold}
-.explode{animation:explode .25s}
-@keyframes explode{to{transform:scale(0);opacity:0}}
-.shake{animation:shake .2s}
-@keyframes shake{0%{transform:translate(3px)}50%{transform:translate(-3px)}100%{transform:translate(3px)}}
+.particle{position:fixed;width:6px;height:6px;border-radius:50%;background:gold;pointer-events:none}
+.comboText{position:fixed;top:45%;left:50%;transform:translate(-50%,-50%);font-size:34px;color:gold;animation:fade .8s forwards}
+@keyframes fade{to{opacity:0;transform:translate(-50%,-70%)}}
 </style>
 </head>
 <body>
 <h2>🌶️ Baharat Patlat</h2>
-<div id="topbar"><div id="moves"></div><div id="gram"></div></div>
+<div id="topbar"><div id="moves"></div><div id="gram"></div><div id="goal"></div></div>
 <div id="game"><div id="board" class="board"></div></div>
 
 <script>
 const types=["zerdecal","safran","pulbiber","karabiber","kekik","tarcin","sumak","anason"];
-let board=[],moves=30,gram=0;
+let board=[],moves=30,gram=0,combo=0,targetType=null,targetCount=20;
 
 const movesEl=document.getElementById("moves");
 const gramEl=document.getElementById("gram");
+const goalEl=document.getElementById("goal");
 
 function updateUI(){
  movesEl.innerText="Hamle: "+moves;
  gramEl.innerText="Gram: "+gram;
+ goalEl.innerText="Hedef: "+targetType+" x"+targetCount;
 }
 
 function init(){
+ targetType=types[Math.floor(Math.random()*types.length)];
+ targetCount=20;
+
  const b=document.getElementById("board");
  b.innerHTML="";
  board=[];
@@ -57,8 +60,7 @@ function rand(){return types[Math.floor(Math.random()*types.length)]}
 
 function draw(){
  board.forEach(t=>{
-  t.el.className="tile"+(t.power?" glow":"");
-  t.el.innerHTML=t.type?`<img src="img/${t.type}.png">`:"";
+  t.el.innerHTML=`<img src="img/${t.type}.png">`;
   if(t.power){
    let p=document.createElement("div");
    p.className="power";
@@ -85,9 +87,7 @@ function end(e){
   else if(dy<-20) to=from-8;
  }
 
- if(valid(from,to)){
-  handleSwap(from,to);
- }
+ if(valid(from,to)) handleSwap(from,to);
  touch=null;
 }
 
@@ -99,58 +99,14 @@ function valid(a,b){
 }
 
 function handleSwap(a,b){
- let A=board[a],B=board[b];
-
- // POWER COMBO
- if(A.power && B.power){
-  comboPower(a,b,A.power,B.power);
-  moves--;updateUI();
-  return;
- }
-
  swap(a,b);
  let m=findMatches();
-
- if(!m.length){
-  swap(a,b); // undo
- }else{
+ if(!m.length){ swap(a,b); }
+ else{
   moves--;updateUI();
+  combo=0;
   process(m);
  }
-}
-
-function comboPower(a,b,p1,p2){
- document.body.classList.add("shake");
- setTimeout(()=>document.body.classList.remove("shake"),200);
-
- if(p1==="bomb" && p2==="bomb"){
-  // büyük alan
-  for(let i=0;i<64;i++) board[i].type=null;
- }
-
- if((p1==="rocket" && p2==="bomb")||(p2==="rocket" && p1==="bomb")){
-  // + şekli
-  let center=a;
-  let r=Math.floor(center/8),c=center%8;
-  for(let i=0;i<8;i++){
-   board[r*8+i].type=null;
-   board[i*8+c].type=null;
-  }
- }
-
- if(p1==="rocket" && p2==="rocket"){
-  // çift yön
-  let r=Math.floor(a/8),c=a%8;
-  for(let i=0;i<8;i++){
-   board[r*8+i].type=null;
-   board[i*8+c].type=null;
-  }
- }
-
- board[a].power=null;
- board[b].power=null;
-
- setTimeout(()=>{drop();refill();check();},200);
 }
 
 function swap(a,b){[board[a],board[b]]=[board[b],board[a]];draw()}
@@ -173,24 +129,60 @@ function findMatches(){
 }
 
 function process(m){
- document.body.classList.add("shake");
- setTimeout(()=>document.body.classList.remove("shake"),200);
+ combo++;
+ showCombo(combo);
 
  if(m.length>=5) board[m[0]].power="bomb";
  else if(m.length>=4) board[m[0]].power="rocket";
 
  m.forEach(i=>{
-  board[i].el.classList.add("explode");
+  spawnParticles(board[i].el);
+
+  if(board[i].type===targetType){
+   targetCount--;
+  }
+
   board[i].type=null;
   board[i].power=null;
  });
 
  setTimeout(()=>{
   drop();refill();
-  gram+=m.length;
+  gram+=m.length*combo;
   updateUI();
+
+  if(targetCount<=0) win();
   check();
  },200);
+}
+
+function spawnParticles(el){
+ let rect=el.getBoundingClientRect();
+ for(let i=0;i<10;i++){
+  let p=document.createElement("div");
+  p.className="particle";
+  p.style.left=rect.left+"px";
+  p.style.top=rect.top+"px";
+  document.body.appendChild(p);
+
+  let dx=(Math.random()-0.5)*100;
+  let dy=(Math.random()-0.5)*100;
+
+  p.animate([
+   {transform:"translate(0,0)",opacity:1},
+   {transform:`translate(${dx}px,${dy}px)`,opacity:0}
+  ],{duration:500});
+
+  setTimeout(()=>p.remove(),500);
+ }
+}
+
+function showCombo(x){
+ let d=document.createElement("div");
+ d.className="comboText";
+ d.innerText="COMBO x"+x;
+ document.body.appendChild(d);
+ setTimeout(()=>d.remove(),800);
 }
 
 function drop(){
@@ -213,9 +205,7 @@ function drop(){
 
 function refill(){
  for(let i=0;i<64;i++){
-  if(!board[i].type){
-   board[i].type=rand();
-  }
+  if(!board[i].type){ board[i].type=rand(); }
  }
  draw();
 }
@@ -223,6 +213,11 @@ function refill(){
 function check(){
  let m=findMatches();
  if(m.length) process(m);
+}
+
+function win(){
+ alert("Kazandın!");
+ location.reload();
 }
 
 init();
