@@ -92,11 +92,19 @@ function end(e){
 function valid(a,b){
  if(b<0||b>=64) return false;
  let ar=Math.floor(a/8),br=Math.floor(b/8);
+
  if(Math.abs(a-b)===1 && ar!==br) return false;
+ if(!(Math.abs(a-b)===1 || Math.abs(a-b)===8)) return false;
+
  return true;
 }
 
-function swap(a,b){[board[a],board[b]]=[board[b],board[a]];draw()}
+function swap(a,b){
+ let temp=board[a];
+ board[a]=board[b];
+ board[b]=temp;
+ draw();
+}
 
 function findMatches(){
  let res=[];
@@ -163,16 +171,17 @@ function spawnParticles(el){
 
 function drop(){
  for(let c=0;c<8;c++){
+  let stack=[];
   for(let r=7;r>=0;r--){
    let i=r*8+c;
-   if(!board[i].type){
-    for(let k=r-1;k>=0;k--){
-     let above=k*8+c;
-     if(board[above].type){
-      board[i].type=board[above].type;
-      board[above].type=null;
-      break;
-     }
+   if(board[i].type) stack.push(board[i].type);
+  }
+  for(let r=7;r>=0;r--){
+   let i=r*8+c;
+   board[i].type=stack.shift()||null;
+  }
+ }
+}
     }
    }
   }
@@ -187,8 +196,10 @@ function refill(){
 }
 
 function check(){
- let m=findMatches();
- if(m.length) process(m);
+ setTimeout(()=>{
+  let m=findMatches();
+  if(m.length) process(m);
+ },120);
 }
 
 function showCombo(x){
