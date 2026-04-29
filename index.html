@@ -3,40 +3,57 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Baharat Patlat PRO</title>
+<title>Baharat Patlat AAA</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:'Fredoka',sans-serif;background:#0f172a;color:#fff;overflow:hidden}
+body{
+margin:0;
+font-family:'Fredoka',sans-serif;
+background:#0f172a;
+color:#fff;
+overflow:hidden;
+}
 
 #ui{
 display:flex;
 justify-content:space-between;
 padding:10px;
-font-size:14px
+font-size:14px;
 }
 
-#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
-.flash{animation:flash .2s}
-@keyframes flash{0%{opacity:.8}100%{opacity:0}}
+#flash{
+position:fixed;
+inset:0;
+background:#fff;
+opacity:0;
+pointer-events:none;
+}
 
-#gameWrap{
+.flash{animation:flash .2s}
+
+@keyframes flash{
+0%{opacity:.8}
+100%{opacity:0}
+}
+
+#wrap{
 width:100vw;
 height:calc(100vh - 40px);
 display:flex;
 align-items:center;
-justify-content:center
+justify-content:center;
 }
 
 .board{
 width:100vmin;
 height:100vmin;
-max-width:100vw;
-max-height:100vw;
 display:grid;
 grid-template-columns:repeat(8,1fr);
 gap:2px;
-padding:4px
+padding:4px;
 }
 
 .tile{
@@ -46,23 +63,30 @@ display:flex;
 align-items:center;
 justify-content:center;
 position:relative;
-transition:transform .15s
+transition:transform .12s ease;
 }
 
-.tile img{width:95%}
+.tile img{width:92%}
 
-.bounce{animation:bounce .25s}
-@keyframes bounce{0%{transform:scale(1)}50%{transform:scale(1.25)}100%{transform:scale(1)}}
+.bounce{animation:bounce .22s}
+
+@keyframes bounce{
+0%{transform:scale(1)}
+50%{transform:scale(1.25)}
+100%{transform:scale(1)}
+}
 
 .particle{
 position:fixed;
-width:6px;height:6px;
+width:6px;
+height:6px;
 border-radius:50%;
-pointer-events:none
+pointer-events:none;
 }
 
 </style>
 </head>
+
 <body>
 
 <div id="flash"></div>
@@ -72,61 +96,75 @@ pointer-events:none
 <div id="grams">Gram: 0</div>
 </div>
 
-<div id="gameWrap">
+<div id="wrap">
 <div id="board" class="board"></div>
 </div>
 
 <script>
+
 const types=["zerdecal","safran","pulbiber","karabiber","kekik","tarcin","sumak","anason"];
 
 let board=[];
-let lock=false;
+let queue=[];
+let processing=false;
+
 let moves=0;
 let grams=0;
-let inputQueue=[];
 
 const movesEl=document.getElementById("moves");
 const gramsEl=document.getElementById("grams");
 
+function rand(){
+return types[Math.floor(Math.random()*types.length)];
+}
+
+/* ================= INIT ================= */
 function init(){
 const b=document.getElementById("board");
 b.innerHTML="";
 board=[];
 
 for(let i=0;i<64;i++){
-let t={type:rand(),el:null};
 let d=document.createElement("div");
 d.className="tile";
-t.el=d;
+
+board.push({type:rand(),el:d});
 
 d.addEventListener("touchstart",e=>start(e,i));
 d.addEventListener("touchend",e=>end(e,i));
 
-board.push(t);
 b.appendChild(d);
 }
+
 draw();
 }
 
-function rand(){return types[Math.floor(Math.random()*types.length)]}
-
+/* ================= DRAW ================= */
 function draw(){
 board.forEach(t=>{
 t.el.innerHTML=`<img src="img/${t.type}.png">`;
 });
 }
 
+/* ================= INPUT ================= */
 let touch=null;
-function start(e,i){touch={x:e.touches[0].clientX,y:e.touches[0].clientY,i}}
+
+function start(e,i){
+touch={
+x:e.touches[0].clientX,
+y:e.touches[0].clientY,
+i
+};
+}
 
 function end(e){
-if(lock) return;
-if(!touch) return;
+if(!touch || processing) return;
 
 let dx=e.changedTouches[0].clientX-touch.x;
 let dy=e.changedTouches[0].clientY-touch.y;
 
-let from=touch.i,to=null;
+let from=touch.i;
+let to=null;
 
 if(Math.abs(dx)>Math.abs(dy)){
 if(dx>20) to=from+1;
@@ -136,151 +174,215 @@ if(dy>20) to=from+8;
 else if(dy<-20) to=from-8;
 }
 
-if(valid(from,to)) enqueue(from,to);
+if(valid(from,to)){
+queue.push({from,to});
+processQueue();
+}
 
 touch=null;
 }
 
 function valid(a,b){
 if(b<0||b>=64) return false;
-let ar=Math.floor(a/8),br=Math.floor(b/8);
+
+let ar=Math.floor(a/8);
+let br=Math.floor(b/8);
+
 if(Math.abs(a-b)===1 && ar!==br) return false;
+
 return true;
 }
 
-function enqueue(a,b){
-inputQueue.push({a,b});
-processQueue();
-}
-
+/* ================= QUEUE ================= */
 function processQueue(){
-if(lock) return;
-if(inputQueue.length===0) return;
+if(processing) return;
+if(queue.length===0) return;
 
-let move=inputQueue.shift();
-execute(move.a,move.b);
+processing=true;
+
+let move=queue.shift();
+execute(move.from,move.to);
 }
 
+/* ================= EXEC ================= */
 function execute(a,b){
-lock=true;
+
 swap(a,b);
 
 let matches=findMatches();
+
 if(matches.length===0){
+
 setTimeout(()=>{
-swap(a,b);
-lock=false;
+swap(a,b); // revert
+processing=false;
 processQueue();
 },120);
+
 return;
 }
 
-handleMatches(matches);
+resolveBoard().then(()=>{
+processing=false;
+processQueue();
+});
 }
 
+/* ================= SWAP ================= */
 function swap(a,b){
-let tmp=board[a];
+let t=board[a];
 board[a]=board[b];
-board[b]=tmp;
+board[b]=t;
 draw();
 }
 
+/* ================= MATCH ================= */
 function findMatches(){
 let res=[];
 
+// horizontal
 for(let r=0;r<8;r++){
 for(let c=0;c<6;c++){
-let i=r*8+c,t=board[i].type;
-if(t&&t===board[i+1].type&&t===board[i+2].type) res.push(i,i+1,i+2);
+let i=r*8+c;
+let t=board[i].type;
+
+if(t && t===board[i+1].type && t===board[i+2].type){
+res.push(i,i+1,i+2);
+}
 }
 }
 
+// vertical
 for(let c=0;c<8;c++){
 for(let r=0;r<6;r++){
-let i=r*8+c,t=board[i].type;
-if(t&&t===board[i+8].type&&t===board[i+16].type) res.push(i,i+8,i+16);
+let i=r*8+c;
+let t=board[i].type;
+
+if(t && t===board[i+8].type && t===board[i+16].type){
+res.push(i,i+8,i+16);
+}
 }
 }
 
 return [...new Set(res)];
 }
 
-function handleMatches(list){
+/* ================= CORE LOOP (AAA FIX) ================= */
+async function resolveBoard(){
 
-list.forEach(i=>{
+let matches=findMatches();
+
+while(matches.length>0){
+
+// clear
+matches.forEach(i=>{
+board[i].type=null;
 board[i].el.classList.add("bounce");
 spawn(board[i].el);
-board[i].type=null;
 grams++;
 });
 
 updateUI();
+draw();
 
-setTimeout(()=>{
+await wait(120);
+
+// gravity
 gravity();
+draw();
+
+await wait(120);
+
+// refill
 fill();
 draw();
 
-let next=findMatches();
-if(next.length){
-handleMatches(next);
-}else{
-lock=false;
-processQueue();
+await wait(120);
+
+// next check
+matches=findMatches();
 }
 
-},180);
 }
 
+/* ================= GRAVITY ================= */
 function gravity(){
+
 for(let c=0;c<8;c++){
+
 let col=[];
+
 for(let r=7;r>=0;r--){
 let i=r*8+c;
 if(board[i].type) col.push(board[i].type);
 }
+
 for(let r=7;r>=0;r--){
 let i=r*8+c;
 board[i].type=col.shift()||null;
 }
-}
+
 }
 
+}
+
+/* ================= FILL ================= */
 function fill(){
 for(let i=0;i<64;i++){
 if(!board[i].type) board[i].type=rand();
 }
 }
 
+/* ================= FX ================= */
 function spawn(el){
 let rect=el.getBoundingClientRect();
-for(let i=0;i<8;i++){
+
+for(let i=0;i<10;i++){
 let p=document.createElement("div");
 p.className="particle";
 p.style.background=`hsl(${Math.random()*360},100%,60%)`;
 p.style.left=rect.left+rect.width/2+"px";
 p.style.top=rect.top+rect.height/2+"px";
+
 document.body.appendChild(p);
 
-let dx=(Math.random()-0.5)*120;
-let dy=(Math.random()-0.5)*120;
+let dx=(Math.random()-0.5)*140;
+let dy=(Math.random()-0.5)*140;
 
 p.animate([
 {transform:"translate(0,0)",opacity:1},
 {transform:`translate(${dx}px,${dy}px)`,opacity:0}
-],{duration:350});
+],{duration:450});
 
-setTimeout(()=>p.remove(),350);
-}
+setTimeout(()=>p.remove(),450);
 }
 
+flash();
+}
+
+/* ================= FLASH ================= */
+function flash(){
+let f=document.getElementById("flash");
+f.classList.add("flash");
+setTimeout(()=>f.classList.remove("flash"),200);
+}
+
+/* ================= UI ================= */
 function updateUI(){
 moves++;
 movesEl.innerText="Hamle: "+moves;
 gramsEl.innerText="Gram: "+grams;
 }
 
+/* ================= UTIL ================= */
+function wait(ms){
+return new Promise(r=>setTimeout(r,ms));
+}
+
+/* ================= START ================= */
 init();
+
 </script>
+
 </body>
 </html>
