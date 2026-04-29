@@ -2,451 +2,275 @@
 
 <html lang="tr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Baharat Patlat • ELITE</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Baharat Patlat • FLOW</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
 
 <style>
-:root{
-  --bg1:#0f172a; --bg2:#1e293b; --card:#334155;
-  --gold:#facc15; --accent:#22c55e; --danger:#ef4444;
-}
-*{box-sizing:border-box}
 body{
-  margin:0; font-family:'Fredoka',system-ui,-apple-system,Segoe UI,Roboto;
-  color:#fff; text-align:center;
-  background:radial-gradient(1200px 800px at 50% -10%, #1f2a44 0%, var(--bg1) 60%);
-  overflow-x:hidden;
+  margin:0;
+  font-family:'Fredoka',sans-serif;
+  background:#0f172a;
+  color:#fff;
+  text-align:center;
 }
-h1{margin:10px 0 6px; font-weight:700; letter-spacing:.5px}
+
+h1{margin:10px}
 
 .top{
-  display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:10px;
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  flex-wrap:wrap;
 }
-.badge{
-  background:linear-gradient(180deg,#3b4a67,#24314a);
-  padding:8px 12px; border-radius:12px; font-size:13px;
-  box-shadow:0 6px 16px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.08);
+
+.box{
+  background:#1e293b;
+  padding:8px 12px;
+  border-radius:10px;
+  font-size:13px;
 }
-.badge b{color:#e5e7eb}
-#levelName{font-weight:700; color:#a7f3d0}
 
 .board{
-  width:92vmin; height:92vmin; margin:8px auto 16px;
-  display:grid; grid-template-columns:repeat(8,1fr); gap:6px;
-  will-change:transform;
+  width:92vmin;
+  height:92vmin;
+  margin:10px auto;
+  display:grid;
+  grid-template-columns:repeat(8,1fr);
+  gap:6px;
 }
+
 .tile{
-  background:linear-gradient(180deg,#1f2a44,#172033);
-  border-radius:14px; display:flex; align-items:center; justify-content:center;
-  cursor:pointer; position:relative; user-select:none;
-  box-shadow:0 8px 20px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
-  transition:transform .12s ease;
+  background:#1e293b;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition:.12s;
 }
-.tile:hover{ transform:scale(1.04) }
-.tile img{ width:78%; height:78%; object-fit:contain; pointer-events:none }
 
-.selected{ outline:3px solid var(--gold) }
+.tile:hover{transform:scale(1.05)}
 
+.tile img{width:80%}
+
+.selected{outline:3px solid gold}
+
+.explode{animation:explode .2s}
 @keyframes explode{
-  0%{transform:scale(1); opacity:1}
-  60%{transform:scale(1.35); opacity:.6}
-  100%{transform:scale(.1); opacity:0}
+  0%{transform:scale(1)}
+  100%{transform:scale(0);opacity:0}
 }
-.explode{ animation:explode .22s ease forwards }
 
+.fall{animation:fall .18s}
 @keyframes fall{
-  from{ transform:translateY(-28px) }
-  to{ transform:translateY(0) }
-}
-.fall{ animation:fall .18s ease }
-
-@keyframes shake{
-  0%{transform:translate(0)}
-  25%{transform:translate(6px)}
-  50%{transform:translate(-6px)}
-  75%{transform:translate(6px)}
-  100%{transform:translate(0)}
+  from{transform:translateY(-30px)}
+  to{transform:translateY(0)}
 }
 
 .combo{
-  position:fixed; left:50%; top:42%; transform:translate(-50%,-50%);
-  font-size:42px; font-weight:700; color:var(--gold);
-  text-shadow:0 6px 18px rgba(250,204,21,.35);
-  pointer-events:none; opacity:0;
+  position:fixed;
+  top:40%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  font-size:36px;
+  color:#facc15;
+  animation:fade .8s forwards;
 }
-@keyframes comboIn{
-  0%{opacity:0; transform:translate(-50%,-20%) scale(.7)}
-  40%{opacity:1; transform:translate(-50%,-50%) scale(1.05)}
-  100%{opacity:0; transform:translate(-50%,-85%) scale(1)}
-}
-.combo.show{ animation:comboIn .8s ease forwards }
 
-.stars{ letter-spacing:2px }
-.footer{opacity:.7; font-size:12px; margin-bottom:10px}
+@keyframes fade{
+  to{opacity:0; transform:translate(-50%,-80%)}
+}
 </style>
 
 </head>
 
 <body>
 
-<h1>🌶️ Baharat Patlat • ELITE</h1>
+<h1>🌶️ Baharat Patlat FLOW</h1>
 
 <div class="top">
-  <div class="badge"><b id="lvl">Level:</b> 1</div>
-  <div class="badge"><b id="levelName">Acemi Aşçı</b></div>
-  <div class="badge"><b>Gram:</b> <span id="gram">0g</span></div>
-  <div class="badge"><b>Hedef:</b> <span id="goal">30g</span></div>
-  <div class="badge"><b>Hamle:</b> <span id="moves">20</span></div>
-  <div class="badge"><b>Yıldız:</b> <span id="stars" class="stars">☆☆☆</span></div>
+  <div class="box">Level: <span id="lvl">1</span></div>
+  <div class="box">Gram: <span id="gram">0g</span></div>
+  <div class="box">Hedef: <span id="goal">30g</span></div>
+  <div class="box">Combo: <span id="cmb">1x</span></div>
 </div>
 
-<div id="board" class="board"></div>
-<canvas id="fx" style="position:fixed; inset:0; pointer-events:none;"></canvas>
-<div id="combo" class="combo">x2</div>
-
-<div class="footer">İpucu: Uzun zincirler daha fazla gram kazandırır.</div>
+<div class="board" id="board"></div>
 
 <script>
-/* ===================== CONFIG ===================== */
-const SIZE = 8;
-const TYPES = ["zerdecal","safran","pulbiber","karabiber","kekik","tarcin","sumak","anason"];
-const LEVEL_NAMES = [
-  "Acemi Aşçı","Tuz Ustası","Kekik Avcısı","Pul Biber Çırağı","Safran Koleksiyoncusu",
-  "Karabiber Uzmanı","Tarçın Şefi","Sumak Sihirbazı","Anason Simyacısı","Baharat Gurmesi"
-];
+const SIZE=8;
+const types=["zerdecal","safran","pulbiber","karabiber","kekik","tarcin","sumak","anason"];
 
-/* ===================== STATE ===================== */
-let board = [];
-let selected = null;
-let gram = 0, level = 1, moves = 20, goal = 30, combo = 1;
-let busy = false; // animasyon sırasında input kilidi
+let board=[],selected=null;
+let gram=0,level=1,goal=30,combo=1;
+let busy=false;
 
-/* ===================== DOM ===================== */
-const boardEl = document.getElementById("board");
-const gramEl  = document.getElementById("gram");
-const goalEl  = document.getElementById("goal");
-const movesEl = document.getElementById("moves");
-const lvlEl   = document.getElementById("lvl");
-const nameEl  = document.getElementById("levelName");
-const starsEl = document.getElementById("stars");
-const comboEl = document.getElementById("combo");
+const boardEl=document.getElementById("board");
 
-/* ===================== UTILS ===================== */
-const rand = () => TYPES[(Math.random()*TYPES.length)|0];
-
-function setLevelName(){
-  nameEl.textContent = LEVEL_NAMES[Math.min(level-1, LEVEL_NAMES.length-1)] || "Usta Şef";
-}
+function rand(){return types[Math.floor(Math.random()*types.length)]}
 
 function createTile(type){
-  const el = document.createElement("div");
-  el.className = "tile";
-  const t = { type, el };
-  el.onclick = () => onClick(t);
-  renderTile(t);
-  return t;
+  return {type:type,el:null};
 }
 
-function renderTile(t){
-  t.el.innerHTML = t.type ? `<img src="${t.type}.png" alt="">` : "";
+function render(t){
+  t.el.innerHTML = t.type ? `<img src="${t.type}.png">` : "";
 }
 
-function updateUI(){
-  gramEl.textContent = gram + "g";
-  goalEl.textContent = goal + "g";
-  movesEl.textContent = moves;
-  lvlEl.textContent = "Level: " + level;
-  setLevelName();
-  const s = getStars();
-  starsEl.textContent = (s>=1?"⭐":"☆") + (s>=2?"⭐":"☆") + (s>=3?"⭐":"☆");
-}
-
-/* ===================== INIT ===================== */
-function initBoard(){
-  board = [];
-  boardEl.innerHTML = "";
+function init(){
+  board=[];
+  boardEl.innerHTML="";
   for(let i=0;i<SIZE*SIZE;i++){
-    const t = createTile(rand());
+    let t=createTile(rand());
+    let d=document.createElement("div");
+    d.className="tile";
+    t.el=d;
+    d.onclick=()=>click(i);
     board.push(t);
-    boardEl.appendChild(t.el);
+    boardEl.appendChild(d);
   }
-  // ilk kurulumda hazır match varsa temizle (free cascade yok)
-  clearInitialMatches();
-  updateUI();
+  draw();
+  loop(); // 🔥 sürekli kontrol
 }
 
-function clearInitialMatches(){
-  let m = findMatches();
-  while(m.length){
-    m.forEach(i => board[i].type = rand());
-    m = findMatches();
-  }
-  board.forEach(renderTile);
-}
+function draw(){board.forEach(render)}
 
-/* ===================== INPUT ===================== */
-function onClick(tile){
-  if(busy || moves<=0) return;
+function click(i){
+  if(busy)return;
 
-  const i = board.indexOf(tile);
-  if(selected == null){
-    selected = i;
+  if(selected===null){
+    selected=i;
     board[i].el.classList.add("selected");
   }else{
-    const a = selected, b = i;
-    board[a].el.classList.remove("selected");
-    selected = null;
-
-    if(isAdjacent(a,b)){
-      doSwap(a,b, true);
+    if(adj(selected,i)){
+      swap(selected,i);
     }
+    board[selected].el.classList.remove("selected");
+    selected=null;
   }
 }
 
-function isAdjacent(a,b){
-  const ar=(a/SIZE)|0, ac=a%SIZE;
-  const br=(b/SIZE)|0, bc=b%SIZE;
+function adj(a,b){
+  let ar=Math.floor(a/SIZE),ac=a%SIZE;
+  let br=Math.floor(b/SIZE),bc=b%SIZE;
   return Math.abs(ar-br)+Math.abs(ac-bc)===1;
 }
 
-/* ===================== CORE ===================== */
-function doSwap(a,b, consumeMove){
-  swap(a,b);
-  const m = findMatches();
-  if(!m.length){
-    // geri al
-    setTimeout(()=>swap(a,b), 120);
-  }else{
-    if(consumeMove){ moves--; updateUI(); }
-    processMatches(m);
-  }
-}
-
 function swap(a,b){
-  const ta = board[a], tb = board[b];
-  [board[a], board[b]] = [tb, ta];
-  // DOM yeniden sıralama (ucuz: repaint yok, sadece içerik değiştiriyoruz)
-  renderTile(board[a]); renderTile(board[b]);
+  [board[a],board[b]]=[board[b],board[a]];
+  draw();
 }
 
 function findMatches(){
-  const res = new Set();
-  // yatay
-  for(let r=0;r<SIZE;r++){
-    let streak=1;
-    for(let c=1;c<SIZE;c++){
-      const i=r*SIZE+c, p=r*SIZE+c-1;
-      if(board[i].type && board[i].type===board[p].type){
-        streak++;
-      }else{
-        if(streak>=3){
-          for(let k=0;k<streak;k++) res.add(p-k);
-        }
-        streak=1;
-      }
-    }
-    if(streak>=3){
-      const end=r*SIZE+SIZE-1;
-      for(let k=0;k<streak;k++) res.add(end-k);
-    }
+  let res=[];
+  for(let i=0;i<SIZE*SIZE;i++){
+    let t=board[i].type;
+    if(!t)continue;
+
+    if(i%SIZE<6 && t===board[i+1].type && t===board[i+2].type)
+      res.push(i,i+1,i+2);
+
+    if(i<SIZE*(SIZE-2) && t===board[i+SIZE].type && t===board[i+SIZE*2].type)
+      res.push(i,i+SIZE,i+SIZE*2);
   }
-  // dikey
-  for(let c=0;c<SIZE;c++){
-    let streak=1;
-    for(let r=1;r<SIZE;r++){
-      const i=r*SIZE+c, p=(r-1)*SIZE+c;
-      if(board[i].type && board[i].type===board[p].type){
-        streak++;
-      }else{
-        if(streak>=3){
-          for(let k=0;k<streak;k++) res.add(p-k*SIZE);
-        }
-        streak=1;
-      }
-    }
-    if(streak>=3){
-      const end=(SIZE-1)*SIZE+c;
-      for(let k=0;k<streak;k++) res.add(end-k*SIZE);
-    }
-  }
-  return [...res];
+  return [...new Set(res)];
 }
 
-/* ===================== FX (Canvas Particles) ===================== */
-const fx = document.getElementById("fx");
-const ctx = fx.getContext("2d");
-let DPR = Math.min(2, window.devicePixelRatio || 1);
-function resizeFx(){
-  fx.width = innerWidth * DPR;
-  fx.height = innerHeight * DPR;
-  fx.style.width = innerWidth + "px";
-  fx.style.height = innerHeight + "px";
-}
-resizeFx();
-window.addEventListener("resize", resizeFx);
-
-const particles = [];
-function spawnParticles(x,y,color="#f59e0b"){
-  for(let i=0;i<14;i++){
-    particles.push({
-      x:x*DPR, y:y*DPR,
-      vx:(Math.random()*2-1)*3*DPR,
-      vy:(Math.random()*2-1)*3*DPR,
-      life: 24 + Math.random()*12,
-      size: (2+Math.random()*3)*DPR,
-      color
-    });
-  }
-}
-function tickParticles(){
-  ctx.clearRect(0,0,fx.width,fx.height);
-  for(let i=particles.length-1;i>=0;i--){
-    const p = particles[i];
-    p.life -= 1;
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vy += 0.05*DPR; // gravity
-    ctx.globalAlpha = Math.max(0, p.life/30);
-    ctx.fillStyle = p.color;
-    ctx.fillRect(p.x, p.y, p.size, p.size);
-    if(p.life<=0) particles.splice(i,1);
-  }
-  ctx.globalAlpha = 1;
-  requestAnimationFrame(tickParticles);
-}
-requestAnimationFrame(tickParticles);
-
-function showCombo(mult){
-  comboEl.textContent = "x" + mult;
-  comboEl.classList.remove("show"); // restart
-  void comboEl.offsetWidth;
-  comboEl.classList.add("show");
+function showCombo(x){
+  let d=document.createElement("div");
+  d.className="combo";
+  d.innerText="x"+x;
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(),800);
 }
 
-function screenShake(){
-  document.body.style.animation="shake .25s";
-  setTimeout(()=>document.body.style.animation="", 250);
-}
-
-/* ===================== RESOLVE ===================== */
-function processMatches(indices){
-  busy = true;
+function process(m){
+  busy=true;
   combo++;
+  document.getElementById("cmb").innerText=combo+"x";
 
   if(combo>1) showCombo(combo);
-  if(indices.length>=5) screenShake();
 
-  // explode + particle
-  indices.forEach(i=>{
-    const el = board[i].el;
-    el.classList.add("explode");
-    const rect = el.getBoundingClientRect();
-    spawnParticles(rect.left + rect.width/2, rect.top + rect.height/2);
+  m.forEach(i=>{
+    board[i].el.classList.add("explode");
   });
 
   setTimeout(()=>{
-    // temizle
-    indices.forEach(i=>{
-      board[i].type = null;
-      board[i].el.classList.remove("explode");
-      renderTile(board[i]);
-    });
+    m.forEach(i=>board[i]=createTile(null));
 
-    // 🎯 GRAM (zorlaştırılmış, combo ile ölçekli)
-    gram += Math.floor(indices.length * (1 + combo*0.6));
+    // 🎯 gram zorlaştırılmış
+    gram += Math.floor(m.length * combo * 0.7);
 
-    updateUI();
+    update();
     drop();
-  }, 180);
+  },200);
 }
 
 function drop(){
-  // kolon bazlı düşme
   for(let c=0;c<SIZE;c++){
     for(let r=SIZE-1;r>=0;r--){
-      const i=r*SIZE+c;
+      let i=r*SIZE+c;
       if(!board[i].type){
-        // yukarıdan ilk doluyu çek
         for(let k=r-1;k>=0;k--){
-          const above = k*SIZE+c;
-          if(board[above].type){
-            board[i].type = board[above].type;
-            board[above].type = null;
+          let a=k*SIZE+c;
+          if(board[a].type){
+            board[i]=board[a];
+            board[a]=createTile(null);
             break;
           }
         }
-        // hâlâ boşsa yeni üret
-        if(!board[i].type){
-          board[i].type = rand();
-        }
+        if(!board[i].type) board[i]=createTile(rand());
       }
     }
   }
 
-  // animasyon + render
-  board.forEach(t=>{
-    t.el.classList.add("fall");
-    renderTile(t);
-  });
-
   setTimeout(()=>{
-    board.forEach(t=>t.el.classList.remove("fall"));
-
-    const m = findMatches();
-    if(m.length){
-      processMatches(m); // cascade
-    }else{
-      combo = 1;
-      busy = false;
-      endCheck();
-    }
-  }, 160);
+    draw();
+    busy=false;
+  },150);
 }
 
-/* ===================== END / LEVEL ===================== */
-function getStars(){
-  if(gram >= goal*1.5) return 3;
-  if(gram >= goal*1.2) return 2;
-  if(gram >= goal) return 1;
-  return 0;
+function loop(){
+  if(!busy){
+    let m=findMatches();
+    if(m.length){
+      process(m);
+    }else{
+      combo=1;
+      document.getElementById("cmb").innerText="1x";
+    }
+  }
+  requestAnimationFrame(loop);
+}
+
+function update(){
+  document.getElementById("lvl").innerText=level;
+  document.getElementById("gram").innerText=gram+"g";
+  document.getElementById("goal").innerText=goal+"g";
+
+  if(gram>=goal){
+    setTimeout(()=>{
+      alert("🎉 Level geçti!");
+      nextLevel();
+    },200);
+  }
 }
 
 function nextLevel(){
   level++;
-  // 🎯 Zorluk eğrisi: 20–30 level civarı ~100g
-  goal = Math.floor(30 + level*4 + Math.pow(level,1.5));
-  moves = Math.max(14, 24 - Math.floor(level/3));
-  gram = 0; combo = 1;
-  initBoard();
+
+  // 🎯 zorluk eğrisi
+  goal = Math.floor(30 + level*5 + Math.pow(level,1.5));
+
+  gram=0;
+  combo=1;
+  init();
 }
 
-function endCheck(){
-  if(gram >= goal){
-    setTimeout(()=>{
-      alert("🎉 Level tamamlandı!\n⭐ " + getStars() + " yıldız");
-      nextLevel();
-      updateUI();
-    }, 120);
-  }else if(moves<=0){
-    setTimeout(()=>{
-      alert("❌ Başarısız! Tekrar dene.");
-      gram = 0; combo = 1;
-      initBoard();
-      updateUI();
-    }, 120);
-  }
-}
-
-/* ===================== BOOT ===================== */
-function boot(){
-  setLevelName();
-  initBoard();
-  updateUI();
-}
-boot();
+init();
 </script>
 
 </body>
