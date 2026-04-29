@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Baharat Patlat ELITE</title>
+
+<style>
+body{
+  margin:0;
+  background:#0f172a;
+  font-family:Arial;
+  color:#fff;
+  text-align:center;
+  overflow:hidden;
+}
+
+h1{margin:10px;}
+
+#topbar{
+  display:flex;
+  justify-content:center;
+  gap:20px;
+  margin-bottom:10px;
+}
+
+.board{
+  width:92vmin;
+  height:92vmin;
+  margin:auto;
+  display:grid;
+  grid-template-columns:repeat(8,1fr);
+  gap:6px;
+}
+
+.tile{
+  background:#1e293b;
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  position:relative;
+  transition:.15s;
+}
+
+.tile img{width:80%;}
+
+.selected{outline:3px solid gold;}
+
+.explode{animation:explode .3s;}
+@keyframes explode{
+  0%{transform:scale(1);}
+  50%{transform:scale(1.4);opacity:.6;}
+  100%{transform:scale(0);opacity:0;}
+}
+
+.fall{animation:fall .3s;}
+@keyframes fall{
+  from{transform:translateY(-40px);}
+  to{transform:translateY(0);}
+}
+
+@keyframes shake{
+  0%{transform:translate(0);}
+  25%{transform:translate(5px);}
+  50%{transform:translate(-5px);}
+  75%{transform:translate(5px);}
+  100%{transform:translate(0);}
+}
+
+.particle{
+  position:absolute;
+  width:6px;
+  height:6px;
+  background:orange;
+  border-radius:50%;
+  pointer-events:none;
+  animation:particle .6s forwards;
+}
+
+@keyframes particle{
+  to{
+    transform:translate(var(--x), var(--y));
+    opacity:0;
+  }
+}
+
+.comboText{
+  position:fixed;
+  top:40%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  font-size:40px;
+  color:gold;
+  pointer-events:none;
+  animation:fadeUp .8s forwards;
+}
+
+@keyframes fadeUp{
+  0%{opacity:1; transform:translate(-50%,-50%);}
+  100%{opacity:0; transform:translate(-50%,-80%);}
+}
+</style>
+
+</head>
+
+<body>
+
+<h1>🌶️ Baharat Patlat ELITE</h1>
+
+<div id="topbar">
+  <div id="score">Skor: 0</div>
+  <div id="moves">Hamle: 20</div>
+  <div id="goal">Hedef: 5000</div>
+  <div id="coins">💰 0</div>
+</div>
+
+<div class="board" id="board"></div>
+
+<script>
+const SIZE = 8;
+const spices = ["zerdecal","safran","pulbiber","karabiber","kekik","tarcin","sumak","anason"];
+
+let board=[];
+let selected=null;
+let score=0;
+let moves=20;
+let goal=5000;
+let coins=0;
+let combo=1;
+let stats={};
+
+const boardEl=document.getElementById("board");
+
+function rand(){return spices[Math.floor(Math.random()*spices.length)];}
+
+function createTile(type){
+  return {type:type,el:null};
+}
+
+function renderTile(tile){
+  if(!tile.type){
+    tile.el.innerHTML="";
+    return;
+  }
+  tile.el.innerHTML=`<img src="img/${tile.type}.png">`;
+}
+
+function init(){
+  board=[];
+  boardEl.innerHTML="";
+  for(let i=0;i<SIZE*SIZE;i++){
+    let t=createTile(rand());
+    let div=document.createElement("div");
+    div.className="tile";
+    t.el=div;
+    div.onclick=()=>clickTile(i);
+    board.push(t);
+    boardEl.appendChild(div);
+  }
+  draw();
+}
+
+function draw(){ board.forEach(renderTile); }
+
+function clickTile(i){
+  if(moves<=0)return;
+  if(selected===null){
+    selected=i;
+    board[i].el.classList.add("selected");
+  }else{
+    if(isAdj(selected,i)) swap(selected,i,true);
+    board[selected].el.classList.remove("selected");
+    selected=null;
+  }
+}
+
+function isAdj(a,b){
+  let ar=Math.floor(a/SIZE), ac=a%SIZE;
+  let br=Math.floor(b/SIZE), bc=b%SIZE;
+  return Math.abs(ar-br)+Math.abs(ac-bc)===1;
+}
+
+function swap(a,b,consume){
+  [board[a],board[b]]=[board[b],board[a]];
+  draw();
+  let m=findMatches();
+  if(!m.length){
+    setTimeout(()=>{[board[a],board[b]]=[board[b],board[a]]; draw();},200);
+  }else{
+    if(consume){moves--; updateUI();}
+    processMatches(m);
+  }
+}
+
+function findMatches(){
+  let res=[];
+  for(let r=0;r<SIZE;r++){
+    for(let c=0;c<SIZE-2;c++){
+      let i=r*SIZE+c;
+      let t=board[i].type;
+      if(t && t===board[i+1].type && t===board[i+2].type){
+        res.push(i,i+1,i+2);
+      }
+    }
+  }
+  for(let c=0;c<SIZE;c++){
+    for(let r=0;r<SIZE-2;r++){
+      let i=r*SIZE+c;
+      let t=board[i].type;
+      if(t && t===board[i+SIZE].type && t===board[i+SIZE*2].type){
+        res.push(i,i+SIZE,i+SIZE*2);
+      }
+    }
+  }
+  return [...new Set(res)];
+}
+
+function spawnParticles(tile){
+  for(let i=0;i<8;i++){
+    const p=document.createElement("div");
+    p.className="particle";
+    p.style.left=tile.offsetLeft+"px";
+    p.style.top=tile.offsetTop+"px";
+    p.style.setProperty("--x",(Math.random()*80-40)+"px");
+    p.style.setProperty("--y",(Math.random()*80-40)+"px");
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),600);
+  }
+}
+
+function showCombo(x){
+  const el=document.createElement("div");
+  el.className="comboText";
+  el.innerText="COMBO x"+x;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),800);
+}
+
+function screenShake(){
+  document.body.style.animation="shake .3s";
+  setTimeout(()=>document.body.style.animation="",300);
+}
+
+function processMatches(m){
+  combo++;
+  if(combo>1) showCombo(combo);
+  if(m.length>=5) screenShake();
+
+  m.forEach(i=>{
+    spawnParticles(board[i].el);
+    track(board[i].type);
+    board[i].el.classList.add("explode");
+  });
+
+  setTimeout(()=>{
+    m.forEach(i=>board[i]=createTile(null));
+    score+=m.length*100*combo;
+    updateUI();
+    drop();
+  },300);
+}
+
+function drop(){
+  for(let c=0;c<SIZE;c++){
+    for(let r=SIZE-1;r>=0;r--){
+      let i=r*SIZE+c;
+      if(!board[i].type){
+        for(let k=r-1;k>=0;k--){
+          let above=k*SIZE+c;
+          if(board[above].type){
+            board[i]=board[above];
+            board[above]=createTile(null);
+            break;
+          }
+        }
+        if(!board[i].type) board[i]=createTile(rand());
+      }
+    }
+  }
+
+  board.forEach(t=>t.el.classList.add("fall"));
+
+  setTimeout(()=>{
+    board.forEach(t=>t.el.classList.remove("fall"));
+    draw();
+    let m=findMatches();
+    if(m.length) processMatches(m);
+    else{ combo=1; checkEnd(); }
+  },300);
+}
+
+function track(type){
+  stats[type]=(stats[type]||0)+1;
+}
+
+function favorite(){
+  return Object.keys(stats).sort((a,b)=>stats[b]-stats[a])[0];
+}
+
+function reward(){
+  let stars = score>=goal*1.5?3:score>=goal*1.1?2:score>=goal?1:0;
+  let reward = stars*50;
+  coins+=reward;
+
+  alert(
+    "⭐ "+stars+" Yıldız\n"+
+    "💰 "+reward+" Coin\n"+
+    "🏆 Favori: "+(favorite()||"-")
+  );
+}
+
+function checkEnd(){
+  if(score>=goal){
+    setTimeout(()=>{reward(); init(); reset();},300);
+  }else if(moves<=0){
+    setTimeout(()=>{alert("❌ Kaybettin"); init(); reset();},300);
+  }
+}
+
+function reset(){
+  score=0;
+  moves=20;
+  combo=1;
+  stats={};
+  updateUI();
+}
+
+function updateUI(){
+  document.getElementById("score").innerText="Skor: "+score;
+  document.getElementById("moves").innerText="Hamle: "+moves;
+  document.getElementById("goal").innerText="Hedef: "+goal;
+  document.getElementById("coins").innerText="💰 "+coins;
+}
+
+init();
+updateUI();
+</script>
+
+</body>
+</html>
