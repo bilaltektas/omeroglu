@@ -3,280 +3,178 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Baharat Patlat ULTRA POWER+</title>
+<title>Baharat Saga ULTRA FINAL</title>
 
 <style>
 *{box-sizing:border-box}
-body{
-margin:0;
-font-family:system-ui;
-overflow:hidden;
-color:#fff;
+body{margin:0;font-family:system-ui;overflow:hidden;color:#fff;background:#050814}
 
-/* 🌈 ENERJİK ARKA PLAN */
-background:linear-gradient(120deg,#0b1020,#1a0f2e,#0f2a3d,#1b1f3a);
-background-size:300% 300%;
+#bg{
+position:fixed;inset:0;z-index:0;
+background:radial-gradient(circle at 20% 20%,#ffcc0030,transparent 40%),
+radial-gradient(circle at 70% 30%,#ff3b9a30,transparent 45%),
+radial-gradient(circle at 50% 80%,#3bd1ff30,transparent 40%),
+linear-gradient(120deg,#050814,#0b1030,#12081f);
 animation:bg 10s ease infinite;
 }
-
-@keyframes bg{
-0%{background-position:0% 50%}
-50%{background-position:100% 50%}
-100%{background-position:0% 50%}
-}
-
-/* floating glow overlay */
-body::before{
-content:"";
-position:fixed;inset:0;
-background:
-radial-gradient(circle at 20% 20%,rgba(255,200,0,.15),transparent 40%),
-radial-gradient(circle at 80% 30%,rgba(255,0,150,.15),transparent 40%),
-radial-gradient(circle at 40% 80%,rgba(0,200,255,.12),transparent 40%);
-pointer-events:none;
-}
+@keyframes bg{0%{filter:hue-rotate(0)}50%{filter:hue-rotate(25deg)}100%{filter:hue-rotate(0)}}
 
 #hud{
-position:fixed;top:0;left:0;right:0;height:54px;
-display:flex;justify-content:space-between;align-items:center;
-padding:0 12px;
-background:rgba(10,15,28,.65);
+position:fixed;top:0;left:0;right:0;height:60px;
+background:rgba(0,0,0,.45);
 backdrop-filter:blur(10px);
-z-index:10;
-font-weight:600;font-size:13px;
-border-bottom:1px solid rgba(255,255,255,.05)
+display:flex;justify-content:space-between;align-items:center;
+padding:0 10px;z-index:5;font-size:12px
 }
 
-#wrap{
-position:absolute;top:54px;left:0;right:0;bottom:0;
-display:flex;align-items:center;justify-content:center
-}
+#wrap{position:absolute;top:60px;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:center}
 
 .board{
-width:92vmin;
-height:92vmin;
-max-width:100vw;
-max-height:calc(100vh - 54px);
-display:grid;
-grid-template-columns:repeat(6,1fr);
-gap:3px;
-padding:6px;
+width:92vmin;height:92vmin;
+display:grid;grid-template-columns:repeat(6,1fr);gap:3px;padding:6px
 }
 
 .tile{
 background:rgba(255,255,255,.06);
-backdrop-filter:blur(6px);
-border-radius:14px;
-display:flex;
-align-items:center;
-justify-content:center;
-position:relative;
+border-radius:12px;
 overflow:hidden;
-transition:transform .12s;
-box-shadow:0 0 10px rgba(0,0,0,.2);
+display:flex;align-items:center;justify-content:center;
+position:relative
 }
 
-.tile img{
-width:100%;height:100%;object-fit:cover;
-border-radius:14px;
-}
+.tile img{width:100%;height:100%;object-fit:cover}
 
-/* 💥 juice pop */
 .pop{animation:pop .2s}
-@keyframes pop{
-0%{transform:scale(1)}
-50%{transform:scale(1.3)}
-100%{transform:scale(1)}
-}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
 
-.shake{animation:shake .25s}
-@keyframes shake{
-0%{transform:translateX(0)}
-25%{transform:translateX(-4px)}
-50%{transform:translateX(4px)}
-100%{transform:translateX(0)}
-}
-
-.flash{
-position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none
-}
+.flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
 .flash.active{animation:f .2s}
 @keyframes f{0%{opacity:.8}100%{opacity:0}}
 
-/* ✨ power glow */
-.powerRocket{box-shadow:0 0 12px #ffcc00}
-.powerBomb{box-shadow:0 0 14px #ff3b3b}
-.powerColor{box-shadow:0 0 14px #7c3aed}
+.particle{
+position:fixed;width:6px;height:6px;border-radius:50%;pointer-events:none;
+background:white;opacity:1;animation:pt .6s forwards
+}
+@keyframes pt{
+0%{transform:translate(0,0) scale(1);opacity:1}
+100%{transform:translate(var(--x),var(--y)) scale(.3);opacity:0}
+}
+
+.screen{
+position:fixed;inset:0;z-index:20;
+background:rgba(0,0,0,.8);
+display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px
+}
+button{padding:12px 18px;border:none;border-radius:12px;background:#ffcc00;font-weight:700}
 
 </style>
 </head>
-
 <body>
 
+<div id="bg"></div>
+
 <div id="hud">
-<div>⭐ Skor: <span id="score">0</span></div>
-<div>🔥 ULTRA MATCH</div>
-<div id="state">READY</div>
+<div>⭐ <span id="score">0</span></div>
+<div>🎯 Lvl <span id="level">1</span></div>
+<div>🚶 <span id="moves">20</span></div>
 </div>
 
-<div id="wrap">
-<div class="board" id="board"></div>
-</div>
-
+<div id="wrap"><div class="board" id="board"></div></div>
 <div id="flash"></div>
 
+<div id="start" class="screen">
+<h2>🌶️ Baharat Saga ULTRA</h2>
+<p>3 eşleştir → patlat<br>🚀 rocket / 💣 bomb / 🌈 color bomb</p>
+<button onclick="startGame()">BAŞLA</button>
+</div>
+
+<div id="end" class="screen" style="display:none"></div>
+
 <script>
+const baseTypes=["zerdecal","safran","pulbiber","karabiber","kekik","tarcin","sumak","anason"];
+const special=["rocket","bomb","color"];
 
-const types=["zerdecal","safran","pulbiber","karabiber","kekik","tarcin","sumak","anason"];
+let board=[],lock=false;
+let score=0,level=1,moves=20;
+let from=null,sx=0,sy=0;
 
-let board=[];
-let lock=false;
-let score=0;
+function rand(){return baseTypes[Math.floor(Math.random()*baseTypes.length)]}
 
-let from=null,startX=0,startY=0;
-
-const scoreEl=document.getElementById("score");
-const stateEl=document.getElementById("state");
-
-function rand(){return types[Math.floor(Math.random()*types.length)]}
+function startGame(){document.getElementById('start').style.display='none';init()}
 
 function init(){
-const b=document.getElementById("board");
-b.innerHTML="";
-board=[];
-
-let start=[];
-for(let i=0;i<36;i++) start.push(rand());
-
+let b=document.getElementById('board');b.innerHTML='';board=[];
 for(let i=0;i<36;i++){
-let d=document.createElement("div");d.className="tile";
-board.push({type:start[i],el:d});
+let d=document.createElement('div');d.className='tile';board.push({type:rand(),el:d});
 
-d.addEventListener("touchstart",e=>{
-startX=e.touches[0].clientX;
-startY=e.touches[0].clientY;
-from=i;
-});
+d.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;from=i});
 
-d.addEventListener("touchend",e=>{
-if(lock) return;
-
-let dx=e.changedTouches[0].clientX-startX;
-let dy=e.changedTouches[0].clientY-startY;
-
-let to=null;
-if(Math.abs(dx)>Math.abs(dy)) to=dx>0?from+1:from-1;
-else to=dy>0?from+6:from-6;
-
+d.addEventListener('touchend',e=>{
+if(lock||moves<=0)return;
+let dx=e.changedTouches[0].clientX-sx;
+let dy=e.changedTouches[0].clientY-sy;
+let to=Math.abs(dx)>Math.abs(dy)?(dx>0?from+1:from-1):(dy>0?from+6:from-6);
 if(valid(from,to)) attempt(from,to);
 });
-
 b.appendChild(d);
 }
+draw();updateUI();}
 
-draw();
-}
+function draw(){board.forEach(t=>{if(!t.type)t.type=rand();t.el.innerHTML=`<img src='img/${t.type}.png'>`})}
 
-function draw(){
-board.forEach(t=>{
-if(!t.type) t.type=rand();
-t.el.innerHTML=`<img src='img/${t.type}.png'>`;
-});
-}
-
-function valid(a,b){
-if(b<0||b>=36) return false;
-let ar=Math.floor(a/6);
-let br=Math.floor(b/6);
-if(Math.abs(a-b)==1 && ar!=br) return false;
-return true;
-}
+function valid(a,b){if(b<0||b>=36)return false;let ar=Math.floor(a/6),br=Math.floor(b/6);return !(Math.abs(a-b)==1&&ar!=br)}
 
 function swap(a,b){[board[a],board[b]]=[board[b],board[a]]}
 
-function attempt(a,b){
-lock=true;
+function attempt(a,b){lock=true;swap(a,b);draw();moves--;updateUI();
+let m=find();if(!m.length){setTimeout(()=>{swap(a,b);draw();lock=false},140);return}
+setTimeout(()=>resolve(m),100)}
 
-swap(a,b);
-draw();
-
-let m=find();
-
-if(!m.length){
-setTimeout(()=>{
-swap(a,b);
-draw();
-shake(a);shake(b);
-lock=false;
-},140);
-return;
-}
-
-setTimeout(()=>resolve(m),100);
-}
-
-function find(){
-let r=[];
-
-for(let i=0;i<6;i++)for(let j=0;j<4;j++){
-let k=i*6+j,t=board[k].type;
-if(t&&t==board[k+1].type&&t==board[k+2].type) r.push(k,k+1,k+2)
-}
-
-for(let j=0;j<6;j++)for(let i=0;i<4;i++){
-let k=i*6+j,t=board[k].type;
-if(t&&t==board[k+6].type&&t==board[k+12].type) r.push(k,k+6,k+12)
-}
-
-return[...new Set(r)]
-}
+function find(){let r=[];
+for(let i=0;i<6;i++)for(let j=0;j<4;j++){let k=i*6+j,t=board[k].type;if(t&&t==board[k+1].type&&t==board[k+2].type)r.push(k,k+1,k+2)}
+for(let j=0;j<6;j++)for(let i=0;i<4;i++){let k=i*6+j,t=board[k].type;if(t&&t==board[k+6].type&&t==board[k+12].type)r.push(k,k+6,k+12)}
+return[...new Set(r)]}
 
 async function resolve(list){
-
 while(list.length){
-
 list.forEach(i=>{
+spawnParticle(board[i].el);
 board[i].type=null;
 score+=10;
-pop(board[i].el);
 flash();
 });
+updateUI();draw();await wait(80);
+gravity();fill();draw();await wait(80);
+list=find();}
+check();lock=false}
 
-update();
-draw();
-await wait(90);
+function gravity(){for(let c=0;c<6;c++){let col=[];for(let r=5;r>=0;r--){let i=r*6+c;if(board[i].type)col.push(board[i].type)}for(let r=5;r>=0;r--){let i=r*6+c;board[i].type=col.shift()||null}}}
+function fill(){for(let i=0;i<36;i++)if(!board[i].type)board[i].type=rand()}
 
-gravity();
-fill();
-draw();
-await wait(90);
-
-list=find();
-}
-
-lock=false;
-}
-
-function gravity(){
-for(let c=0;c<6;c++){
-let col=[];
-for(let r=5;r>=0;r--){let i=r*6+c;if(board[i].type) col.push(board[i].type)}
-for(let r=5;r>=0;r--){let i=r*6+c;board[i].type=col.shift()||null}
+function spawnParticle(el){
+for(let i=0;i<6;i++){
+let p=document.createElement('div');p.className='particle';
+document.body.appendChild(p);
+let r=Math.random()*2*Math.PI;
+let d=40+Math.random()*40;
+p.style.left=el.getBoundingClientRect().left+20+'px';
+p.style.top=el.getBoundingClientRect().top+20+'px';
+p.style.setProperty('--x',Math.cos(r)*d+'px');
+p.style.setProperty('--y',Math.sin(r)*d+'px');
+setTimeout(()=>p.remove(),600);
 }
 }
 
-function fill(){for(let i=0;i<36;i++) if(!board[i].type) board[i].type=rand()}
+function flash(){let f=document.getElementById('flash');f.classList.add('active');setTimeout(()=>f.classList.remove('active'),200)}
 
-function pop(el){el.classList.add("pop");setTimeout(()=>el.classList.remove("pop"),200)}
-function shake(i){board[i].el.classList.add("shake");setTimeout(()=>board[i].el.classList.remove("shake"),250)}
+function check(){
+if(score>300*level){level++;moves=20+level*2}
+if(moves<=0){end('KAYBETTİN')} }
 
-function flash(){let f=document.getElementById("flash");f.classList.add("active");setTimeout(()=>f.classList.remove("active"),200)}
+function end(t){document.getElementById('end').style.display='flex';document.getElementById('end').innerHTML=`<h2>${t}</h2><button onclick='location.reload()'>Tekrar</button>`}
 
-function update(){scoreEl.innerText=score}
-
+function updateUI(){document.getElementById('score').innerText=score;document.getElementById('level').innerText=level;document.getElementById('moves').innerText=moves}
 function wait(ms){return new Promise(r=>setTimeout(r,ms))}
-
-init();
 
 </script>
 </body>
