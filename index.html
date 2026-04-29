@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Baharat Saga ULTRA FINAL</title>
-
+<title>Baharat Saga ULTRA STORE</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:system-ui;overflow:hidden;color:#fff;background:#050814}
@@ -41,7 +40,6 @@ overflow:hidden;
 display:flex;align-items:center;justify-content:center;
 position:relative
 }
-
 .tile img{width:100%;height:100%;object-fit:cover}
 
 .pop{animation:pop .2s}
@@ -51,21 +49,11 @@ position:relative
 .flash.active{animation:f .2s}
 @keyframes f{0%{opacity:.8}100%{opacity:0}}
 
-.particle{
-position:fixed;width:6px;height:6px;border-radius:50%;pointer-events:none;
-background:white;opacity:1;animation:pt .6s forwards
-}
-@keyframes pt{
-0%{transform:translate(0,0) scale(1);opacity:1}
-100%{transform:translate(var(--x),var(--y)) scale(.3);opacity:0}
-}
+.screen{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px}
+button{padding:12px 16px;border:none;border-radius:12px;background:#ffcc00;font-weight:700}
 
-.screen{
-position:fixed;inset:0;z-index:20;
-background:rgba(0,0,0,.8);
-display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px
-}
-button{padding:12px 18px;border:none;border-radius:12px;background:#ffcc00;font-weight:700}
+.particle{position:fixed;width:6px;height:6px;border-radius:50%;background:#fff;animation:p 600ms forwards;pointer-events:none}
+@keyframes p{to{transform:translate(var(--x),var(--y));opacity:0}}
 
 </style>
 </head>
@@ -83,24 +71,39 @@ button{padding:12px 18px;border:none;border-radius:12px;background:#ffcc00;font-
 <div id="flash"></div>
 
 <div id="start" class="screen">
-<h2>🌶️ Baharat Saga ULTRA</h2>
-<p>3 eşleştir → patlat<br>🚀 rocket / 💣 bomb / 🌈 color bomb</p>
+<h2>🌶️ Baharat Saga STORE</h2>
+<p>🚀 Rocket | 💣 Bomb | 🌈 Color Bomb<br>Full physics + combo engine</p>
 <button onclick="startGame()">BAŞLA</button>
 </div>
 
-<div id="end" class="screen" style="display:none"></div>
+<div id="win" class="screen" style="display:none">
+<h2>🎁 Level Bitti!</h2>
+<p>Sandık açılıyor...</p>
+<button onclick="nextLevel()">DEVAM</button>
+</div>
+
+<div id="fail" class="screen" style="display:none">
+<h2>❌ Kaybettin</h2>
+<button onclick="location.reload()">TEKRAR</button>
+</div>
 
 <script>
-const baseTypes=["zerdecal","safran","pulbiber","karabiber","kekik","tarcin","sumak","anason"];
-const special=["rocket","bomb","color"];
+const base=["zerdecal","safran","pulbiber","karabiber","kekik","tarcin","sumak","anason"];
 
 let board=[],lock=false;
-let score=0,level=1,moves=20;
+let score=0,level=1,moves=20,target=300;
 let from=null,sx=0,sy=0;
 
-function rand(){return baseTypes[Math.floor(Math.random()*baseTypes.length)]}
+function rand(){
+let r=Math.random();
+if(r<0.04)return"rocket";
+if(r<0.07)return"bomb";
+if(r<0.1)return"color";
+return base[Math.floor(Math.random()*base.length)]
+}
 
 function startGame(){document.getElementById('start').style.display='none';init()}
+function nextLevel(){document.getElementById('win').style.display='none';level++;moves=20+level*2;target+=200;init()}
 
 function init(){
 let b=document.getElementById('board');b.innerHTML='';board=[];
@@ -114,66 +117,83 @@ if(lock||moves<=0)return;
 let dx=e.changedTouches[0].clientX-sx;
 let dy=e.changedTouches[0].clientY-sy;
 let to=Math.abs(dx)>Math.abs(dy)?(dx>0?from+1:from-1):(dy>0?from+6:from-6);
-if(valid(from,to)) attempt(from,to);
+if(valid(from,to)) swapAndResolve(from,to);
 });
 b.appendChild(d);
 }
-draw();updateUI();}
+draw();ui();}
 
-function draw(){board.forEach(t=>{if(!t.type)t.type=rand();t.el.innerHTML=`<img src='img/${t.type}.png'>`})}
+function draw(){board.forEach(t=>t.el.innerHTML=`<img src='img/${t.type}.png'>`)}
 
 function valid(a,b){if(b<0||b>=36)return false;let ar=Math.floor(a/6),br=Math.floor(b/6);return !(Math.abs(a-b)==1&&ar!=br)}
 
 function swap(a,b){[board[a],board[b]]=[board[b],board[a]]}
 
-function attempt(a,b){lock=true;swap(a,b);draw();moves--;updateUI();
-let m=find();if(!m.length){setTimeout(()=>{swap(a,b);draw();lock=false},140);return}
-setTimeout(()=>resolve(m),100)}
+function specialResolve(a,b){
+let tA=board[a].type,tB=board[b].type;
+let affected=[];
+
+if(tA=="rocket"){
+let r=Math.floor(a/6);
+for(let i=0;i<6;i++)affected.push(r*6+i);
+}
+if(tB=="rocket"){
+let r=Math.floor(b/6);
+for(let i=0;i<6;i++)affected.push(r*6+i);
+}
+
+if(tA=="bomb"||tB=="bomb"){
+let c=[a,b];
+c.forEach(i=>{
+let r=Math.floor(i/6),c=i%6;
+for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
+let nr=r+dr,nc=c+dc;if(nr>=0&&nc>=0&&nr<6&&nc<6)affected.push(nr*6+nc)
+}
+})
+}
+
+if(tA=="color"){
+base.forEach(bt=>{
+board.forEach((t,i)=>{if(t.type==tB)affected.push(i)})
+})
+}
+if(tB=="color"){
+board.forEach((t,i)=>{if(t.type==tA)affected.push(i)})
+}
+
+return [...new Set(affected)]
+}
+
+function swapAndResolve(a,b){lock=true;swap(a,b);draw();moves--;ui();
+let spec=specialResolve(a,b);
+let m=find();
+let list=spec.length?spec:m;
+
+if(!list.length){setTimeout(()=>{swap(a,b);draw();lock=false},150);return}
+setTimeout(()=>resolve(list),100)}
 
 function find(){let r=[];
-for(let i=0;i<6;i++)for(let j=0;j<4;j++){let k=i*6+j,t=board[k].type;if(t&&t==board[k+1].type&&t==board[k+2].type)r.push(k,k+1,k+2)}
-for(let j=0;j<6;j++)for(let i=0;i<4;i++){let k=i*6+j,t=board[k].type;if(t&&t==board[k+6].type&&t==board[k+12].type)r.push(k,k+6,k+12)}
+for(let i=0;i<6;i++)for(let j=0;j<4;j++){let k=i*6+j,t=board[k].type;if(t==board[k+1].type&&t==board[k+2].type)r.push(k,k+1,k+2)}
+for(let j=0;j<6;j++)for(let i=0;i<4;i++){let k=i*6+j,t=board[k].type;if(t==board[k+6].type&&t==board[k+12].type)r.push(k,k+6,k+12)}
 return[...new Set(r)]}
 
 async function resolve(list){
 while(list.length){
 list.forEach(i=>{
-spawnParticle(board[i].el);
-board[i].type=null;
-score+=10;
-flash();
+explode(board[i].el);score+=10;
+board[i].type=null
 });
-updateUI();draw();await wait(80);
-gravity();fill();draw();await wait(80);
-list=find();}
+ui();draw();await wait(80);gravity();fill();draw();await wait(80);list=find()}
 check();lock=false}
 
-function gravity(){for(let c=0;c<6;c++){let col=[];for(let r=5;r>=0;r--){let i=r*6+c;if(board[i].type)col.push(board[i].type)}for(let r=5;r>=0;r--){let i=r*6+c;board[i].type=col.shift()||null}}}
+function explode(el){flash();navigator.vibrate?.(20)}
+
+function gravity(){for(let c=0;c<6;c++){let col=[];for(let r=5;r>=0;r--){let i=r*6+c;if(board[i].type)col.push(board[i].type)}for(let r=5;r>=0;r--){board[r*6+c].type=col.shift()||null}}}
 function fill(){for(let i=0;i<36;i++)if(!board[i].type)board[i].type=rand()}
 
-function spawnParticle(el){
-for(let i=0;i<6;i++){
-let p=document.createElement('div');p.className='particle';
-document.body.appendChild(p);
-let r=Math.random()*2*Math.PI;
-let d=40+Math.random()*40;
-p.style.left=el.getBoundingClientRect().left+20+'px';
-p.style.top=el.getBoundingClientRect().top+20+'px';
-p.style.setProperty('--x',Math.cos(r)*d+'px');
-p.style.setProperty('--y',Math.sin(r)*d+'px');
-setTimeout(()=>p.remove(),600);
-}
-}
+function check(){if(score>target){document.getElementById('win').style.display='flex'}if(moves<=0&&score<target){document.getElementById('fail').style.display='flex'}}
 
-function flash(){let f=document.getElementById('flash');f.classList.add('active');setTimeout(()=>f.classList.remove('active'),200)}
-
-function check(){
-if(score>300*level){level++;moves=20+level*2}
-if(moves<=0){end('KAYBETTİN')} }
-
-function end(t){document.getElementById('end').style.display='flex';document.getElementById('end').innerHTML=`<h2>${t}</h2><button onclick='location.reload()'>Tekrar</button>`}
-
-function updateUI(){document.getElementById('score').innerText=score;document.getElementById('level').innerText=level;document.getElementById('moves').innerText=moves}
+function ui(){scoreEl.innerText=score;levelEl.innerText=level;movesEl.innerText=moves}
 function wait(ms){return new Promise(r=>setTimeout(r,ms))}
 
 </script>
