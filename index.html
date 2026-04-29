@@ -7,48 +7,30 @@
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 body{margin:0;font-family:'Fredoka',sans-serif;background:#0f172a;color:#fff;text-align:center;overflow:hidden}
-#topbar{display:flex;justify-content:space-between;padding:10px;font-size:16px}
+#flash{position:fixed;inset:0;background:white;opacity:0;pointer-events:none}
+.flash{animation:flash .25s}
+@keyframes flash{0%{opacity:.8}100%{opacity:0}}
+
 .board{width:100vw;height:100vw;max-width:640px;max-height:640px;margin:auto;display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
-.tile{background:#1e293b;border-radius:14px;display:flex;align-items:center;justify-content:center;position:relative;transition:.25s}
+.tile{background:#1e293b;border-radius:14px;display:flex;align-items:center;justify-content:center;position:relative;transition:.2s}
 .tile img{width:100%}
-.ice{background:#93c5fd55}
-.lock{background:#64748b}
-.power{position:absolute;font-size:22px}
-.comboText{position:fixed;top:45%;left:50%;transform:translate(-50%,-50%);font-size:40px;color:gold;animation:comboAnim 1.2s forwards}
-@keyframes comboAnim{
- 0%{transform:translate(-50%,-50%) scale(0.5);opacity:0}
- 50%{transform:translate(-50%,-60%) scale(1.2);opacity:1}
- 100%{transform:translate(-50%,-80%) scale(1);opacity:0}
-}
+.bounce{animation:bounce .25s}
+@keyframes bounce{0%{transform:scale(1)}50%{transform:scale(1.25)}100%{transform:scale(1)}}
+
+.comboText{position:fixed;top:45%;left:50%;transform:translate(-50%,-50%);font-size:42px;color:gold;animation:comboAnim 1.2s forwards}
+@keyframes comboAnim{0%{opacity:0;transform:scale(.5)}50%{opacity:1;transform:scale(1.2)}100%{opacity:0;transform:translateY(-60px)}}
+
+.particle{position:fixed;width:8px;height:8px;border-radius:50%;pointer-events:none}
 </style>
 </head>
 <body>
+<div id="flash"></div>
 <h2>🌶️ Baharat Patlat</h2>
-<div id="topbar"><div id="moves"></div><div id="goal"></div></div>
 <div id="game"><div id="board" class="board"></div></div>
 
 <script>
 const types=["zerdecal","safran","pulbiber","karabiber","kekik","tarcin","sumak","anason"];
-let board=[],moves=30,combo=0,level=1,targetType,targetCount;
-
-const movesEl=document.getElementById("moves");
-const goalEl=document.getElementById("goal");
-
-function startLevel(lvl){
- level=lvl;
- moves=level*5;
-
- targetType=types[Math.floor(Math.random()*types.length)];
- targetCount=15+level;
-
- init();
- updateUI();
-}
-
-function updateUI(){
- movesEl.innerText="Hamle: "+moves;
- goalEl.innerText="Hedef: "+targetType+" x"+targetCount;
-}
+let board=[],combo=0;
 
 function init(){
  const b=document.getElementById("board");
@@ -56,12 +38,7 @@ function init(){
  board=[];
 
  for(let i=0;i<64;i++){
-  let t={type:rand(),power:null,ice:false,lock:false,el:null};
-
-  // LEVEL DESIGN
-  if(level>10 && level<=20 && Math.random()<0.2) t.ice=true;
-  if(level>20 && level<=30 && Math.random()<0.15) t.lock=true;
-
+  let t={type:rand(),el:null};
   let d=document.createElement("div");
   d.className="tile";
   t.el=d;
@@ -79,10 +56,6 @@ function rand(){return types[Math.floor(Math.random()*types.length)]}
 
 function draw(){
  board.forEach(t=>{
-  t.el.className="tile";
-  if(t.ice) t.el.classList.add("ice");
-  if(t.lock) t.el.classList.add("lock");
-
   t.el.innerHTML=`<img src="img/${t.type}.png">`;
  });
 }
@@ -91,7 +64,7 @@ let touch=null;
 function start(e,i){touch={x:e.touches[0].clientX,y:e.touches[0].clientY,i}}
 
 function end(e){
- if(!touch||moves<=0) return;
+ if(!touch) return;
  let dx=e.changedTouches[0].clientX-touch.x;
  let dy=e.changedTouches[0].clientY-touch.y;
  let from=touch.i,to=null;
@@ -104,7 +77,15 @@ function end(e){
   else if(dy<-20) to=from-8;
  }
 
- if(valid(from,to)) handleSwap(from,to);
+ if(valid(from,to)){
+  swap(from,to);
+  let m=findMatches();
+  if(!m.length) swap(from,to);
+  else{
+   combo=0;
+   process(m);
+  }
+ }
  touch=null;
 }
 
@@ -112,67 +93,72 @@ function valid(a,b){
  if(b<0||b>=64) return false;
  let ar=Math.floor(a/8),br=Math.floor(b/8);
  if(Math.abs(a-b)===1 && ar!==br) return false;
- if(board[a].lock||board[b].lock) return false;
  return true;
-}
-
-function handleSwap(a,b){
- swap(a,b);
- let m=findMatches();
- if(!m.length){ swap(a,b); }
- else{
-  moves--;updateUI();
-  combo=0;
-  process(m);
- }
 }
 
 function swap(a,b){[board[a],board[b]]=[board[b],board[a]];draw()}
 
 function findMatches(){
  let res=[];
-
- // yatay
  for(let r=0;r<8;r++){
   for(let c=0;c<6;c++){
    let i=r*8+c,t=board[i].type;
    if(t&&t===board[i+1].type&&t===board[i+2].type) res.push(i,i+1,i+2);
   }
  }
-
- // dikey
  for(let c=0;c<8;c++){
   for(let r=0;r<6;r++){
    let i=r*8+c,t=board[i].type;
    if(t&&t===board[i+8].type&&t===board[i+16].type) res.push(i,i+8,i+16);
   }
  }
-
  return [...new Set(res)];
 }
 
 function process(m){
  combo++;
  showCombo(combo);
+ triggerFlash();
 
  m.forEach(i=>{
   let t=board[i];
-
-  if(t.ice){ t.ice=false; return; }
-
-  if(t.type===targetType) targetCount--;
-
+  t.el.classList.add("bounce");
+  spawnParticles(t.el);
   t.type=null;
  });
 
  setTimeout(()=>{
-  drop(); refill();
-  updateUI();
-
-  if(targetCount<=0){ alert("Level Tamam!"); startLevel(level+1); }
-
+  drop();refill();
   check();
- },300);
+ },250);
+}
+
+function triggerFlash(){
+ let f=document.getElementById("flash");
+ f.classList.add("flash");
+ setTimeout(()=>f.classList.remove("flash"),200);
+}
+
+function spawnParticles(el){
+ let rect=el.getBoundingClientRect();
+ for(let i=0;i<20;i++){
+  let p=document.createElement("div");
+  p.className="particle";
+  p.style.background=`hsl(${Math.random()*360},100%,60%)`;
+  p.style.left=rect.left+rect.width/2+"px";
+  p.style.top=rect.top+rect.height/2+"px";
+  document.body.appendChild(p);
+
+  let dx=(Math.random()-0.5)*200;
+  let dy=(Math.random()-0.5)*200;
+
+  p.animate([
+   {transform:"translate(0,0)",opacity:1},
+   {transform:`translate(${dx}px,${dy}px)`,opacity:0}
+  ],{duration:600});
+
+  setTimeout(()=>p.remove(),600);
+ }
 }
 
 function drop(){
@@ -213,7 +199,7 @@ function showCombo(x){
  setTimeout(()=>d.remove(),1200);
 }
 
-startLevel(1);
+init();
 </script>
 </body>
 </html>
