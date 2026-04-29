@@ -7,84 +7,57 @@
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 body{margin:0;font-family:'Fredoka',sans-serif;background:#0f172a;color:#fff;text-align:center;overflow:hidden}
-#topbar{display:flex;justify-content:space-between;padding:10px;font-size:14px}
-#map{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding:10px}
-.levelBtn{width:44px;height:44px;background:#1e293b;border-radius:10px;display:flex;align-items:center;justify-content:center}
-.locked{opacity:.3}
-#game{display:none}
-.board{width:100vw;height:100vw;max-width:520px;max-height:520px;margin:auto;display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
-.tile{background:#1e293b;border-radius:10px;display:flex;align-items:center;justify-content:center;position:relative}
-.tile img{width:80%}
+#topbar{display:flex;justify-content:space-between;padding:10px;font-size:16px}
+.board{width:100vw;height:100vw;max-width:640px;max-height:640px;margin:auto;display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.tile{background:#1e293b;border-radius:14px;display:flex;align-items:center;justify-content:center;position:relative;transition:.15s}
+.tile img{width:95%}
+.power{position:absolute;font-size:22px}
+.glow{box-shadow:0 0 12px gold}
 .explode{animation:explode .25s}
 @keyframes explode{to{transform:scale(0);opacity:0}}
-.fall{animation:fall .2s}
-@keyframes fall{from{transform:translateY(-20px)}to{transform:translateY(0)}}
-.power{position:absolute;font-size:18px}
+.shake{animation:shake .2s}
+@keyframes shake{0%{transform:translate(3px)}50%{transform:translate(-3px)}100%{transform:translate(3px)}}
 </style>
 </head>
 <body>
 <h2>🌶️ Baharat Patlat</h2>
 <div id="topbar"><div id="moves"></div><div id="gram"></div></div>
-<div id="map"></div>
 <div id="game"><div id="board" class="board"></div></div>
+
 <script>
 const types=["zerdecal","safran","pulbiber","karabiber","kekik","tarcin","sumak","anason"];
-let unlocked=Number(localStorage.getItem("lvl"))||1;
-const mapEl=document.getElementById("map");
+let board=[],moves=30,gram=0;
 
-function createMap(){
- mapEl.innerHTML="";
- for(let i=1;i<=100;i++){
-  let d=document.createElement("div");
-  d.className="levelBtn"+(i>unlocked?" locked":"");
-  d.innerText=i;
-  if(i<=unlocked) d.onclick=()=>startLevel(i);
-  mapEl.appendChild(d);
- }
-}
-
-let board=[],level=1,gram=0,moves=0,maxMoves=0;
-
-function startLevel(lvl){
- level=lvl;
- mapEl.style.display="none";
- document.getElementById("game").style.display="block";
- gram=0;
- maxMoves=level*5;
- moves=maxMoves;
- init();
- updateUI();
-}
+const movesEl=document.getElementById("moves");
+const gramEl=document.getElementById("gram");
 
 function updateUI(){
  movesEl.innerText="Hamle: "+moves;
  gramEl.innerText="Gram: "+gram;
 }
 
-const movesEl=document.getElementById("moves");
-const gramEl=document.getElementById("gram");
-
 function init(){
+ const b=document.getElementById("board");
+ b.innerHTML="";
  board=[];
- const boardEl=document.getElementById("board");
- boardEl.innerHTML="";
  for(let i=0;i<64;i++){
   let t={type:rand(),power:null,el:null};
   let d=document.createElement("div");
   d.className="tile";
   t.el=d;
-  d.addEventListener("touchstart",e=>touchStart(e,i));
-  d.addEventListener("touchend",e=>touchEnd(e,i));
+  d.addEventListener("touchstart",e=>start(e,i));
+  d.addEventListener("touchend",e=>end(e,i));
   board.push(t);
-  boardEl.appendChild(d);
+  b.appendChild(d);
  }
- draw();
+ draw();updateUI();
 }
 
 function rand(){return types[Math.floor(Math.random()*types.length)]}
 
 function draw(){
  board.forEach(t=>{
+  t.el.className="tile"+(t.power?" glow":"");
   t.el.innerHTML=t.type?`<img src="img/${t.type}.png">`:"";
   if(t.power){
    let p=document.createElement("div");
@@ -95,14 +68,15 @@ function draw(){
  });
 }
 
-let touchPos=null;
-function touchStart(e,i){touchPos={x:e.touches[0].clientX,y:e.touches[0].clientY,index:i}}
+let touch=null;
+function start(e,i){touch={x:e.touches[0].clientX,y:e.touches[0].clientY,i}}
 
-function touchEnd(e,i){
- if(!touchPos||moves<=0) return;
- let dx=e.changedTouches[0].clientX-touchPos.x;
- let dy=e.changedTouches[0].clientY-touchPos.y;
- let from=touchPos.index,to=null;
+function end(e){
+ if(!touch||moves<=0) return;
+ let dx=e.changedTouches[0].clientX-touch.x;
+ let dy=e.changedTouches[0].clientY-touch.y;
+ let from=touch.i,to=null;
+
  if(Math.abs(dx)>Math.abs(dy)){
   if(dx>20) to=from+1;
   else if(dx<-20) to=from-1;
@@ -110,103 +84,113 @@ function touchEnd(e,i){
   if(dy>20) to=from+8;
   else if(dy<-20) to=from-8;
  }
- if(to!==null && validMove(from,to)){
-  swap(from,to);
-  moves--;updateUI();
+
+ if(valid(from,to)){
+  handleSwap(from,to);
  }
- touchPos=null;
+ touch=null;
 }
 
-function validMove(a,b){
+function valid(a,b){
  if(b<0||b>=64) return false;
  let ar=Math.floor(a/8),br=Math.floor(b/8);
  if(Math.abs(a-b)===1 && ar!==br) return false;
  return true;
 }
 
-function swap(a,b){
- [board[a],board[b]]=[board[b],board[a]];
- draw();
- check();
+function handleSwap(a,b){
+ let A=board[a],B=board[b];
+
+ // POWER COMBO
+ if(A.power && B.power){
+  comboPower(a,b,A.power,B.power);
+  moves--;updateUI();
+  return;
+ }
+
+ swap(a,b);
+ let m=findMatches();
+
+ if(!m.length){
+  swap(a,b); // undo
+ }else{
+  moves--;updateUI();
+  process(m);
+ }
 }
 
-function check(){
- let m=findMatches();
- if(m.length) process(m);
- else if(moves<=0) endGame();
+function comboPower(a,b,p1,p2){
+ document.body.classList.add("shake");
+ setTimeout(()=>document.body.classList.remove("shake"),200);
+
+ if(p1==="bomb" && p2==="bomb"){
+  // büyük alan
+  for(let i=0;i<64;i++) board[i].type=null;
+ }
+
+ if((p1==="rocket" && p2==="bomb")||(p2==="rocket" && p1==="bomb")){
+  // + şekli
+  let center=a;
+  let r=Math.floor(center/8),c=center%8;
+  for(let i=0;i<8;i++){
+   board[r*8+i].type=null;
+   board[i*8+c].type=null;
+  }
+ }
+
+ if(p1==="rocket" && p2==="rocket"){
+  // çift yön
+  let r=Math.floor(a/8),c=a%8;
+  for(let i=0;i<8;i++){
+   board[r*8+i].type=null;
+   board[i*8+c].type=null;
+  }
+ }
+
+ board[a].power=null;
+ board[b].power=null;
+
+ setTimeout(()=>{drop();refill();check();},200);
 }
+
+function swap(a,b){[board[a],board[b]]=[board[b],board[a]];draw()}
 
 function findMatches(){
  let res=[];
  for(let r=0;r<8;r++){
   for(let c=0;c<6;c++){
-   let i=r*8+c;
-   let t=board[i].type;
-   if(t && t===board[i+1].type && t===board[i+2].type){
-    res.push(i,i+1,i+2);
-   }
+   let i=r*8+c,t=board[i].type;
+   if(t&&t===board[i+1].type&&t===board[i+2].type) res.push(i,i+1,i+2);
   }
  }
  for(let c=0;c<8;c++){
   for(let r=0;r<6;r++){
-   let i=r*8+c;
-   let t=board[i].type;
-   if(t && t===board[i+8].type && t===board[i+16].type){
-    res.push(i,i+8,i+16);
-   }
+   let i=r*8+c,t=board[i].type;
+   if(t&&t===board[i+8].type&&t===board[i+16].type) res.push(i,i+8,i+16);
   }
  }
  return [...new Set(res)];
 }
 
 function process(m){
- // POWER-UP OLUŞTURMA
- if(m.length>=5){
-  board[m[0]].power="bomb";
- }else if(m.length>=4){
-  board[m[0]].power="rocket";
- }
+ document.body.classList.add("shake");
+ setTimeout(()=>document.body.classList.remove("shake"),200);
+
+ if(m.length>=5) board[m[0]].power="bomb";
+ else if(m.length>=4) board[m[0]].power="rocket";
 
  m.forEach(i=>{
-  explodeTile(i);
+  board[i].el.classList.add("explode");
+  board[i].type=null;
+  board[i].power=null;
  });
 
  setTimeout(()=>{
-  drop();
-  refill();
+  drop();refill();
   gram+=m.length;
   updateUI();
-
-  if(gram>=level*10) nextLevel();
   check();
  },200);
-}
-
-function explodeTile(i){
- let t=board[i];
- t.el.classList.add("explode");
-
- if(t.power==="rocket"){
-  let row=Math.floor(i/8);
-  for(let c=0;c<8;c++){
-   board[row*8+c].type=null;
-  }
- }
-
- if(t.power==="bomb"){
-  let r=Math.floor(i/8),c=i%8;
-  for(let dr=-1;dr<=1;dr++){
-   for(let dc=-1;dc<=1;dc++){
-    let nr=r+dr,nc=c+dc;
-    if(nr>=0&&nc>=0&&nr<8&&nc<8){
-     board[nr*8+nc].type=null;
-    }
-   }
-  }
- }
-
- t.type=null;
- t.power=null;
 }
 
 function drop(){
@@ -217,8 +201,8 @@ function drop(){
     for(let k=r-1;k>=0;k--){
      let above=k*8+c;
      if(board[above].type){
-      board[i]=JSON.parse(JSON.stringify(board[above]));
-      board[above]={type:null,power:null,el:board[above].el};
+      board[i].type=board[above].type;
+      board[above].type=null;
       break;
      }
     }
@@ -230,30 +214,18 @@ function drop(){
 function refill(){
  for(let i=0;i<64;i++){
   if(!board[i].type){
-   board[i]={type:rand(),power:null,el:board[i].el};
-   board[i].el.classList.add("fall");
+   board[i].type=rand();
   }
  }
  draw();
 }
 
-function nextLevel(){
- unlocked=Math.max(unlocked,level+1);
- localStorage.setItem("lvl",unlocked);
- alert("Level tamam!");
- mapEl.style.display="flex";
- document.getElementById("game").style.display="none";
- createMap();
+function check(){
+ let m=findMatches();
+ if(m.length) process(m);
 }
 
-function endGame(){
- alert("Hamle bitti!");
- mapEl.style.display="flex";
- document.getElementById("game").style.display="none";
- createMap();
-}
-
-createMap();
+init();
 </script>
 </body>
 </html>
