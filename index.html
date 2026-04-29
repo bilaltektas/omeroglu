@@ -4,84 +4,98 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Baharat Patlat • FLOW</title>
+<title>Baharat Patlat PRO</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
 
 <style>
 body{
-  margin:0;
-  font-family:'Fredoka',sans-serif;
-  background:#0f172a;
-  color:#fff;
-  text-align:center;
+margin:0;
+font-family:'Fredoka',sans-serif;
+background:#0f172a;
+color:#fff;
+text-align:center;
 }
 
-h1{margin:10px}
-
-.top{
-  display:flex;
-  gap:10px;
-  justify-content:center;
-  flex-wrap:wrap;
+/* ===== MAP ===== */
+#map{
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
+gap:10px;
+padding:20px;
 }
 
-.box{
-  background:#1e293b;
-  padding:8px 12px;
-  border-radius:10px;
-  font-size:13px;
+.levelBtn{
+width:60px;height:60px;
+background:#1e293b;
+border-radius:12px;
+display:flex;
+align-items:center;
+justify-content:center;
+cursor:pointer;
 }
+
+.locked{opacity:.3}
+
+/* ===== GAME ===== */
+#game{display:none}
 
 .board{
-  width:92vmin;
-  height:92vmin;
-  margin:10px auto;
-  display:grid;
-  grid-template-columns:repeat(8,1fr);
-  gap:6px;
+width:92vmin;
+height:92vmin;
+margin:auto;
+display:grid;
+grid-template-columns:repeat(8,1fr);
+gap:6px;
 }
 
 .tile{
-  background:#1e293b;
-  border-radius:12px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-  transition:.12s;
+background:#1e293b;
+border-radius:12px;
+display:flex;
+align-items:center;
+justify-content:center;
 }
-
-.tile:hover{transform:scale(1.05)}
 
 .tile img{width:80%}
 
 .selected{outline:3px solid gold}
 
 .explode{animation:explode .2s}
-@keyframes explode{
-  0%{transform:scale(1)}
-  100%{transform:scale(0);opacity:0}
-}
-
-.fall{animation:fall .18s}
-@keyframes fall{
-  from{transform:translateY(-30px)}
-  to{transform:translateY(0)}
-}
+@keyframes explode{to{transform:scale(0);opacity:0}}
 
 .combo{
-  position:fixed;
-  top:40%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  font-size:36px;
-  color:#facc15;
-  animation:fade .8s forwards;
+position:fixed;
+top:40%;
+left:50%;
+transform:translate(-50%,-50%);
+font-size:30px;
+color:gold;
+animation:fade .8s forwards;
+}
+@keyframes fade{to{opacity:0}}
+
+#reward{
+display:none;
+position:fixed;
+inset:0;
+background:#000c;
+align-items:center;
+justify-content:center;
+flex-direction:column;
 }
 
-@keyframes fade{
-  to{opacity:0; transform:translate(-50%,-80%)}
+.rewardBox{
+background:#1e293b;
+padding:20px;
+border-radius:12px;
+}
+
+.spice{
+width:60px;
+margin:10px;
+cursor:pointer;
 }
 </style>
 
@@ -89,188 +103,176 @@ h1{margin:10px}
 
 <body>
 
-<h1>🌶️ Baharat Patlat FLOW</h1>
+<h1>🌶️ Baharat Patlat</h1>
 
-<div class="top">
-  <div class="box">Level: <span id="lvl">1</span></div>
-  <div class="box">Gram: <span id="gram">0g</span></div>
-  <div class="box">Hedef: <span id="goal">30g</span></div>
-  <div class="box">Combo: <span id="cmb">1x</span></div>
+<div id="map"></div>
+
+<div id="game">
+<div id="board" class="board"></div>
 </div>
 
-<div class="board" id="board"></div>
+<div id="reward">
+<div class="rewardBox">
+<h2>🎁 Tebrikler!</h2>
+<p>Dilediğiniz baharatı seçebilirsiniz</p>
+<div id="spiceList"></div>
+</div>
+</div>
 
 <script>
-const SIZE=8;
 const types=["zerdecal","safran","pulbiber","karabiber","kekik","tarcin","sumak","anason"];
+let unlocked=Number(localStorage.getItem("lvl"))||1;
 
-let board=[],selected=null;
-let gram=0,level=1,goal=30,combo=1;
-let busy=false;
+/* ===== MAP ===== */
+const mapEl=document.getElementById("map");
 
-const boardEl=document.getElementById("board");
-
-function rand(){return types[Math.floor(Math.random()*types.length)]}
-
-function createTile(type){
-  return {type:type,el:null};
+function createMap(){
+mapEl.innerHTML="";
+for(let i=1;i<=30;i++){
+let d=document.createElement("div");
+d.className="levelBtn"+(i>unlocked?" locked":"");
+d.innerText=i;
+if(i<=unlocked){
+d.onclick=()=>startLevel(i);
+}
+mapEl.appendChild(d);
+}
 }
 
-function render(t){
-  t.el.innerHTML = t.type ? `<img src="${t.type}.png">` : "";
+/* ===== GAME ===== */
+let SIZE=8,board=[],selected=null,combo=1,gram=0,goal=30,level=1;
+
+function startLevel(lvl){
+level=lvl;
+mapEl.style.display="none";
+document.getElementById("game").style.display="block";
+
+init();
 }
 
 function init(){
-  board=[];
-  boardEl.innerHTML="";
-  for(let i=0;i<SIZE*SIZE;i++){
-    let t=createTile(rand());
-    let d=document.createElement("div");
-    d.className="tile";
-    t.el=d;
-    d.onclick=()=>click(i);
-    board.push(t);
-    boardEl.appendChild(d);
-  }
-  draw();
-  loop(); // 🔥 sürekli kontrol
+board=[];
+let boardEl=document.getElementById("board");
+boardEl.innerHTML="";
+
+for(let i=0;i<64;i++){
+let t={type:rand(),el:null};
+let d=document.createElement("div");
+d.className="tile";
+t.el=d;
+d.onclick=()=>click(i);
+board.push(t);
+boardEl.appendChild(d);
+}
+draw();
 }
 
-function draw(){board.forEach(render)}
+function rand(){return types[Math.floor(Math.random()*types.length)]}
+
+function draw(){
+board.forEach(t=>{
+t.el.innerHTML=`<img src="img/${t.type}.png">`;
+});
+}
 
 function click(i){
-  if(busy)return;
-
-  if(selected===null){
-    selected=i;
-    board[i].el.classList.add("selected");
-  }else{
-    if(adj(selected,i)){
-      swap(selected,i);
-    }
-    board[selected].el.classList.remove("selected");
-    selected=null;
-  }
+if(selected===null){
+selected=i;
+board[i].el.classList.add("selected");
+}else{
+swap(selected,i);
+board[selected].el.classList.remove("selected");
+selected=null;
 }
-
-function adj(a,b){
-  let ar=Math.floor(a/SIZE),ac=a%SIZE;
-  let br=Math.floor(b/SIZE),bc=b%SIZE;
-  return Math.abs(ar-br)+Math.abs(ac-bc)===1;
 }
 
 function swap(a,b){
-  [board[a],board[b]]=[board[b],board[a]];
-  draw();
+[board[a],board[b]]=[board[b],board[a]];
+draw();
+check();
+}
+
+function check(){
+let m=findMatches();
+if(m.length) process(m);
 }
 
 function findMatches(){
-  let res=[];
-  for(let i=0;i<SIZE*SIZE;i++){
-    let t=board[i].type;
-    if(!t)continue;
-
-    if(i%SIZE<6 && t===board[i+1].type && t===board[i+2].type)
-      res.push(i,i+1,i+2);
-
-    if(i<SIZE*(SIZE-2) && t===board[i+SIZE].type && t===board[i+SIZE*2].type)
-      res.push(i,i+SIZE,i+SIZE*2);
-  }
-  return [...new Set(res)];
+let res=[];
+for(let i=0;i<64;i++){
+let t=board[i].type;
+if(i%8<6 && t===board[i+1].type && t===board[i+2].type)
+res.push(i,i+1,i+2);
+}
+return [...new Set(res)];
 }
 
-function showCombo(x){
-  let d=document.createElement("div");
-  d.className="combo";
-  d.innerText="x"+x;
-  document.body.appendChild(d);
-  setTimeout(()=>d.remove(),800);
-}
-
+/* ===== POWER UPS ===== */
 function process(m){
-  busy=true;
-  combo++;
-  document.getElementById("cmb").innerText=combo+"x";
+combo++;
+showCombo(combo);
 
-  if(combo>1) showCombo(combo);
+if(m.length>=4) rocket(m[0]);
+if(m.length>=5) bomb(m[0]);
 
-  m.forEach(i=>{
-    board[i].el.classList.add("explode");
-  });
+m.forEach(i=>{
+board[i].el.classList.add("explode");
+});
 
-  setTimeout(()=>{
-    m.forEach(i=>board[i]=createTile(null));
-
-    // 🎯 gram zorlaştırılmış
-    gram += Math.floor(m.length * combo * 0.7);
-
-    update();
-    drop();
-  },200);
+setTimeout(()=>{
+m.forEach(i=>board[i].type=rand());
+draw();
+gram+=1;
+if(gram>=100) showReward();
+},200);
 }
 
-function drop(){
-  for(let c=0;c<SIZE;c++){
-    for(let r=SIZE-1;r>=0;r--){
-      let i=r*SIZE+c;
-      if(!board[i].type){
-        for(let k=r-1;k>=0;k--){
-          let a=k*SIZE+c;
-          if(board[a].type){
-            board[i]=board[a];
-            board[a]=createTile(null);
-            break;
-          }
-        }
-        if(!board[i].type) board[i]=createTile(rand());
-      }
-    }
-  }
-
-  setTimeout(()=>{
-    draw();
-    busy=false;
-  },150);
+function rocket(i){
+let row=Math.floor(i/8);
+for(let c=0;c<8;c++){
+board[row*8+c].type=null;
+}
 }
 
-function loop(){
-  if(!busy){
-    let m=findMatches();
-    if(m.length){
-      process(m);
-    }else{
-      combo=1;
-      document.getElementById("cmb").innerText="1x";
-    }
-  }
-  requestAnimationFrame(loop);
+function bomb(i){
+let r=Math.floor(i/8),c=i%8;
+for(let dr=-1;dr<=1;dr++){
+for(let dc=-1;dc<=1;dc++){
+let nr=r+dr,nc=c+dc;
+if(nr>=0 && nc>=0 && nr<8 && nc<8){
+board[nr*8+nc].type=null;
+}
+}
+}
 }
 
-function update(){
-  document.getElementById("lvl").innerText=level;
-  document.getElementById("gram").innerText=gram+"g";
-  document.getElementById("goal").innerText=goal+"g";
-
-  if(gram>=goal){
-    setTimeout(()=>{
-      alert("🎉 Level geçti!");
-      nextLevel();
-    },200);
-  }
+/* ===== COMBO ===== */
+function showCombo(x){
+let d=document.createElement("div");
+d.className="combo";
+d.innerText="x"+x;
+document.body.appendChild(d);
+setTimeout(()=>d.remove(),800);
 }
 
-function nextLevel(){
-  level++;
+/* ===== REWARD ===== */
+function showReward(){
+document.getElementById("reward").style.display="flex";
 
-  // 🎯 zorluk eğrisi
-  goal = Math.floor(30 + level*5 + Math.pow(level,1.5));
+let list=document.getElementById("spiceList");
+list.innerHTML="";
 
-  gram=0;
-  combo=1;
-  init();
+types.forEach(t=>{
+let img=document.createElement("img");
+img.src="img/"+t+".png";
+img.className="spice";
+img.onclick=()=>alert("Seçildi: "+t);
+list.appendChild(img);
+});
 }
 
-init();
+/* ===== START ===== */
+createMap();
 </script>
 
 </body>
