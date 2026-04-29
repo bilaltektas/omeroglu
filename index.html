@@ -7,67 +7,61 @@
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 body{margin:0;font-family:'Fredoka',sans-serif;background:#0f172a;color:#fff;text-align:center;overflow:hidden}
-#flash{position:fixed;inset:0;background:white;opacity:0;pointer-events:none}
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
 .flash{animation:flash .2s}
 @keyframes flash{0%{opacity:.8}100%{opacity:0}}
 
-.board{width:100vw;height:100vw;max-width:640px;max-height:640px;margin:auto;display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
-.tile{background:#1e293b;border-radius:14px;display:flex;align-items:center;justify-content:center;position:relative;transition:.15s}
+.board{
+width:100vw;height:100vw;max-width:640px;max-height:640px;
+margin:auto;
+display:grid;
+grid-template-columns:repeat(8,1fr);
+gap:3px
+}
+
+.tile{
+background:#1e293b;
+border-radius:14px;
+display:flex;
+align-items:center;
+justify-content:center;
+position:relative;
+}
+
 .tile img{width:100%}
+
 .bounce{animation:bounce .2s}
-@keyframes bounce{0%{transform:scale(1)}50%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes bounce{0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
 
-.comboText{position:fixed;top:45%;left:50%;transform:translate(-50%,-50%);font-size:40px;color:gold;animation:comboAnim 1.1s forwards}
-@keyframes comboAnim{0%{opacity:0;transform:scale(.5)}50%{opacity:1;transform:scale(1.2)}100%{opacity:0;transform:translateY(-60px)}}
+.comboText{
+position:fixed;top:45%;left:50%;transform:translate(-50%,-50%);
+font-size:38px;color:gold;
+animation:comboAnim 1s forwards
+}
 
-.particle{position:fixed;width:7px;height:7px;border-radius:50%;pointer-events:none}
+@keyframes comboAnim{
+0%{opacity:0;transform:scale(.5)}
+50%{opacity:1;transform:scale(1.2)}
+100%{opacity:0;transform:translateY(-60px)}
+}
+
+.particle{
+position:fixed;width:6px;height:6px;border-radius:50%;pointer-events:none
+}
 </style>
 </head>
 <body>
+
 <div id="flash"></div>
 <h2>🌶️ Baharat Patlat</h2>
 <div id="game"><div id="board" class="board"></div></div>
 
 <script>
 const types=["zerdecal","safran","pulbiber","karabiber","kekik","tarcin","sumak","anason"];
-let board=[],combo=0;
 
-// INPUT QUEUE SYSTEM
+let board=[];
 let inputQueue=[];
 let processing=false;
-
-function enqueueMove(from,to){
- inputQueue.push({from,to});
- processQueue();
-}
-
-function processQueue(){
- if(processing) return;
- if(inputQueue.length===0) return;
-
- processing=true;
- let move=inputQueue.shift();
- executeMove(move.from,move.to);
-}
-
-function executeMove(from,to){
- swap(from,to);
- let m=findMatches();
-
- if(!m.length){
-  setTimeout(()=>{
-   swap(from,to);
-   processing=false;
-   processQueue();
-  },120);
- }else{
-  combo=0;
-  process(m,()=>{
-   processing=false;
-   processQueue();
-  });
- }
-}
 
 function init(){
  const b=document.getElementById("board");
@@ -110,14 +104,14 @@ function end(e){
  let from=touch.i,to=null;
 
  if(Math.abs(dx)>Math.abs(dy)){
-  if(dx>15) to=from+1;
-  else if(dx<-15) to=from-1;
+  if(dx>20) to=from+1;
+  else if(dx<-20) to=from-1;
  }else{
-  if(dy>15) to=from+8;
-  else if(dy<-15) to=from-8;
+  if(dy>20) to=from+8;
+  else if(dy<-20) to=from-8;
  }
 
- if(valid(from,to)) enqueueMove(from,to);
+ if(valid(from,to)) enqueue(from,to);
  touch=null;
 }
 
@@ -128,8 +122,39 @@ function valid(a,b){
  return true;
 }
 
+function enqueue(a,b){
+ inputQueue.push({a,b});
+ processQueue();
+}
+
+function processQueue(){
+ if(processing) return;
+ if(inputQueue.length===0) return;
+
+ processing=true;
+ let m=inputQueue.shift();
+ execute(m.a,m.b);
+}
+
+function execute(a,b){
+ swap(a,b);
+ let matches=findMatches();
+
+ if(matches.length===0){
+  setTimeout(()=>{
+   swap(a,b);
+   processing=false;
+   processQueue();
+  },100);
+ }else{
+  process(matches);
+ }
+}
+
 function swap(a,b){
- [board[a],board[b]]=[board[b],board[a]];
+ let temp=board[a];
+ board[a]=board[b];
+ board[b]=temp;
  draw();
 }
 
@@ -153,59 +178,39 @@ function findMatches(){
  return [...new Set(res)];
 }
 
-function process(m,done){
- combo++;
+function process(m){
  triggerFlash();
 
  m.forEach(i=>{
-  spawnParticles(board[i].el);
   board[i].el.classList.add("bounce");
+  spawnParticles(board[i].el);
   board[i].type=null;
  });
 
  setTimeout(()=>{
   drop();
   refill();
-  check();
-  if(done) done();
- },200);
-}
+  draw();
 
-function triggerFlash(){
- let f=document.getElementById("flash");
- f.classList.add("flash");
- setTimeout(()=>f.classList.remove("flash"),200);
-}
-
-function spawnParticles(el){
- let rect=el.getBoundingClientRect();
- for(let i=0;i<12;i++){
-  let p=document.createElement("div");
-  p.className="particle";
-  p.style.background=`hsl(${Math.random()*360},100%,60%)`;
-  p.style.left=rect.left+rect.width/2+"px";
-  p.style.top=rect.top+rect.height/2+"px";
-  document.body.appendChild(p);
-
-  let dx=(Math.random()-0.5)*160;
-  let dy=(Math.random()-0.5)*160;
-
-  p.animate([
-   {transform:"translate(0,0)",opacity:1},
-   {transform:`translate(${dx}px,${dy}px)`,opacity:0}
-  ],{duration:500});
-
-  setTimeout(()=>p.remove(),500);
- }
+  let next=findMatches();
+  if(next.length){
+   process(next);
+  }else{
+   processing=false;
+   processQueue();
+  }
+ },150);
 }
 
 function drop(){
  for(let c=0;c<8;c++){
   let stack=[];
+
   for(let r=7;r>=0;r--){
    let i=r*8+c;
    if(board[i].type) stack.push(board[i].type);
   }
+
   for(let r=7;r>=0;r--){
    let i=r*8+c;
    board[i].type=stack.shift()||null;
@@ -217,15 +222,38 @@ function refill(){
  for(let i=0;i<64;i++){
   if(!board[i].type) board[i].type=rand();
  }
- draw();
 }
 
-function check(){
- let m=findMatches();
- if(m.length) process(m);
+function triggerFlash(){
+ let f=document.getElementById("flash");
+ f.classList.add("flash");
+ setTimeout(()=>f.classList.remove("flash"),200);
+}
+
+function spawnParticles(el){
+ let rect=el.getBoundingClientRect();
+ for(let i=0;i<10;i++){
+  let p=document.createElement("div");
+  p.className="particle";
+  p.style.background=`hsl(${Math.random()*360},100%,60%)`;
+  p.style.left=rect.left+rect.width/2+"px";
+  p.style.top=rect.top+rect.height/2+"px";
+  document.body.appendChild(p);
+
+  let dx=(Math.random()-0.5)*120;
+  let dy=(Math.random()-0.5)*120;
+
+  p.animate([
+   {transform:"translate(0,0)",opacity:1},
+   {transform:`translate(${dx}px,${dy}px)`,opacity:0}
+  ],{duration:400});
+
+  setTimeout(()=>p.remove(),400);
+ }
 }
 
 init();
 </script>
+
 </body>
 </html>
