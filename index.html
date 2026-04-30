@@ -3,253 +3,187 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Baharat Saga FIXED PRO</title>
+<title>Baharat Saga AAA FINAL</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;overflow:hidden;font-family:sans-serif;background:#0b1020;color:#fff}
+body{margin:0;overflow:hidden;background:#050814;font-family:sans-serif;color:#fff}
 
-#hud{
-position:fixed;top:0;left:0;right:0;height:50px;
-display:flex;justify-content:space-between;align-items:center;
-padding:0 10px;background:#0008;z-index:10
-}
+#hud{position:fixed;top:0;left:0;right:0;height:55px;display:flex;justify-content:space-between;align-items:center;padding:0 12px;background:#0008;z-index:20}
 
-#wrap{
-position:absolute;top:50px;bottom:0;left:0;right:0;
-display:flex;justify-content:center;align-items:center
-}
+#wrap{position:absolute;top:55px;bottom:0;left:0;right:0;display:flex;justify-content:center;align-items:center}
 
-.board{
-width:95vmin;height:95vmin;
-display:grid;grid-template-columns:repeat(6,1fr);
-gap:4px;padding:6px
-}
+.board{width:95vmin;height:95vmin;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:6px}
 
-.tile{
-background:#1e293b;
-border-radius:12px;
-display:flex;align-items:center;justify-content:center;
-transition:transform .2s;
-}
-.tile img{width:100%;height:100%;object-fit:cover;border-radius:12px}
+.tile{background:#1e293b;border-radius:12px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.tile img{width:100%;height:100%;object-fit:cover}
 
-.swap{transform:scale(.9)}
-.pop{animation:pop .25s}
-@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
+.beam{position:fixed;height:8px;background:linear-gradient(90deg,#fff,#ff0,#fff);z-index:50;animation:beam .3s forwards}
+@keyframes beam{from{transform:scaleX(0)}to{transform:scaleX(1);opacity:0}}
+
+.shock{position:fixed;border-radius:50%;border:3px solid #fff;z-index:50;animation:shock .4s forwards}
+@keyframes shock{from{transform:scale(.2);opacity:1}to{transform:scale(3);opacity:0}}
+
+.lightning{position:fixed;width:2px;background:#fff;z-index:50;animation:light .2s forwards}
+@keyframes light{to{opacity:0}}
+
+.vortex{position:fixed;inset:0;background:radial-gradient(circle,#fff3,transparent);z-index:60;animation:vortex .6s forwards}
+@keyframes vortex{from{transform:scale(0)}to{transform:scale(2);opacity:0}}
+
+.flash{position:fixed;inset:0;background:#fff;opacity:0}
+.flash.active{animation:flash .2s}
+@keyframes flash{0%{opacity:.7}100%{opacity:0}}
+
+.combo{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);font-size:34px;color:#ffd700;animation:combo .9s forwards}
+@keyframes combo{0%{opacity:0}50%{opacity:1}100%{opacity:0;transform:translate(-50%,-90%)}}
 
 </style>
 </head>
 <body>
 
 <div id="hud">
-<div>Score: <span id="score">0</span></div>
-<div>Moves: <span id="moves">30</span></div>
+<div>⭐ <span id="score">0</span></div>
+<div>🚶 <span id="moves">30</span></div>
 </div>
 
-<div id="wrap">
-<div id="board" class="board"></div>
-</div>
+<div id="wrap"><div id="board" class="board"></div></div>
+<div id="flash"></div>
 
 <script>
+const base=["zerdecal","safran","pulbiber","karabiber","kekik","tarcin","sumak","anason"];
+let size=6,board=[],busy=false,score=0,moves=30,combo=0;
 
-const types=["zerdecal","safran","pulbiber","karabiber","kekik","tarcin","sumak","anason"];
+function rand(){
+let r=Math.random();
+if(r<0.03)return"logo";
+if(r<0.06)return"rocket";
+if(r<0.09)return"bomb";
+if(r<0.12)return"color";
+return base[Math.floor(Math.random()*base.length)]
+}
 
-let board=[];
-let size=6;
-let selected=null;
-let busy=false;
-let score=0;
-let moves=30;
-
-function rand(){return types[Math.floor(Math.random()*types.length)]}
+function img(t){return t=="logo"?"img/ömeroğlu.png":`img/${t}.png`}
 
 function init(){
-const el=document.getElementById("board");
-el.innerHTML="";
-board=[];
+const el=document.getElementById("board");el.innerHTML="";board=[];
+for(let i=0;i<36;i++){
+let d=document.createElement("div");d.className="tile";
+let obj={type:rand(),el:d};board.push(obj);
+let start;
 
-for(let i=0;i<size*size;i++){
-let d=document.createElement("div");
-d.className="tile";
-d.dataset.index=i;
-
-let obj={type:rand(),el:d};
-board.push(obj);
-
-// CLICK + DRAG
-let start=null;
-
-d.addEventListener("touchstart",e=>{
-start={x:e.touches[0].clientX,y:e.touches[0].clientY,i};
-});
+d.addEventListener("touchstart",e=>start={x:e.touches[0].clientX,y:e.touches[0].clientY,i});
 
 d.addEventListener("touchend",e=>{
 if(busy||moves<=0)return;
 let dx=e.changedTouches[0].clientX-start.x;
 let dy=e.changedTouches[0].clientY-start.y;
-
-let target=null;
-if(Math.abs(dx)>Math.abs(dy)){
-target = dx>0? i+1 : i-1;
-}else{
-target = dy>0? i+size : i-size;
-}
-
-if(valid(i,target)) swapTry(i,target);
+let t=Math.abs(dx)>Math.abs(dy)?(dx>0?start.i+1:start.i-1):(dy>0?start.i+size:start.i-size);
+if(valid(start.i,t))swapTry(start.i,t);
 });
 
 el.appendChild(d);
 }
+draw();clean();}
 
-draw();
-removeInitialMatches();
+function draw(){board.forEach(t=>t.el.innerHTML=`<img src="${img(t.type)}">`)}
+
+function valid(a,b){if(b<0||b>=36)return false;let ar=Math.floor(a/size),br=Math.floor(b/size);return !(Math.abs(a-b)==1&&ar!=br)}
+function swap(a,b){[board[a],board[b]]=[board[b],board[a]]}
+
+function swapTry(a,b){busy=true;moves--;ui();swap(a,b);draw();
+let list=[...special(a,b),...find()];
+if(!list.length){setTimeout(()=>{swap(a,b);draw();busy=false},150);return}
+setTimeout(()=>resolve([...new Set(list)]),120)}
+
+function special(a,b){let res=[];
+let tA=board[a].type,tB=board[b].type;
+
+if(tA=="rocket"||tB=="rocket"){
+let row=Math.floor(a/size);
+beam(row);
+for(let i=0;i<size;i++)res.push(row*size+i);
 }
 
-function draw(){
-board.forEach(t=>{
-t.el.innerHTML=`<img src="img/${t.type}.png">`;
+if(tA=="bomb"||tB=="bomb"){
+shock(board[a].el);
+[a,b].forEach(i=>{
+let r=Math.floor(i/size),c=i%size;
+for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
+let nr=r+dr,nc=c+dc;if(nr>=0&&nc>=0&&nr<size&&nc<size)res.push(nr*size+nc);
+}
 });
 }
 
-function valid(a,b){
-if(b<0||b>=36)return false;
-let ar=Math.floor(a/size),br=Math.floor(b/size);
-if(Math.abs(a-b)==1 && ar!=br)return false;
-return true;
+if(tA=="color"||tB=="color"){
+lightning();
+let target=tA=="color"?tB:tA;
+board.forEach((t,i)=>{if(t.type==target)res.push(i)});
 }
 
-function swap(a,b){
-[board[a],board[b]]=[board[b],board[a]];
+if(tA=="logo"||tB=="logo"){
+vortex();
+for(let i=0;i<36;i++)res.push(i);
 }
 
-function swapTry(a,b){
-busy=true;
-moves--;
-updateHUD();
-
-swap(a,b);
-animateSwap(a,b);
-
-draw();
-
-let m=findMatches();
-
-if(!m.length){
-setTimeout(()=>{
-swap(a,b);
-animateSwap(a,b);
-draw();
-busy=false;
-},200);
-return;
+return res;
 }
 
-setTimeout(()=>resolve(),200);
+function beam(row){
+let b=document.createElement("div");b.className="beam";
+b.style.top=(row*(window.innerHeight/6)+80)+"px";
+b.style.left="0";b.style.right="0";
+document.body.appendChild(b);
+setTimeout(()=>b.remove(),300);
 }
 
-function animateSwap(a,b){
-board[a].el.classList.add("swap");
-board[b].el.classList.add("swap");
-setTimeout(()=>{
-board[a].el.classList.remove("swap");
-board[b].el.classList.remove("swap");
-},200);
+function shock(el){
+let r=el.getBoundingClientRect();
+let s=document.createElement("div");s.className="shock";
+s.style.left=r.left+"px";s.style.top=r.top+"px";
+document.body.appendChild(s);
+setTimeout(()=>s.remove(),400);
 }
 
-function findMatches(){
-let res=[];
-
-// rows
-for(let r=0;r<size;r++){
-for(let c=0;c<size-2;c++){
-let i=r*size+c;
-let t=board[i].type;
-if(t==board[i+1].type && t==board[i+2].type){
-res.push(i,i+1,i+2);
-}
+function lightning(){
+for(let i=0;i<10;i++){
+let l=document.createElement("div");l.className="lightning";
+l.style.left=Math.random()*window.innerWidth+"px";
+l.style.top=Math.random()*window.innerHeight+"px";
+l.style.height=50+Math.random()*100+"px";
+document.body.appendChild(l);
+setTimeout(()=>l.remove(),200);
 }
 }
 
-// cols
-for(let c=0;c<size;c++){
-for(let r=0;r<size-2;r++){
-let i=r*size+c;
-let t=board[i].type;
-if(t==board[i+size].type && t==board[i+size*2].type){
-res.push(i,i+size,i+size*2);
-}
-}
+function vortex(){
+let v=document.createElement("div");v.className="vortex";
+document.body.appendChild(v);
+setTimeout(()=>v.remove(),600);
 }
 
-return [...new Set(res)];
-}
+function find(){let res=[];
+for(let r=0;r<size;r++)for(let c=0;c<size-2;c++){let i=r*size+c,t=board[i].type;if(t==board[i+1].type&&t==board[i+2].type)res.push(i,i+1,i+2)}
+for(let c=0;c<size;c++)for(let r=0;r<size-2;r++){let i=r*size+c,t=board[i].type;if(t==board[i+size].type&&t==board[i+size*2].type)res.push(i,i+size,i+size*2)}
+return[...new Set(res)]}
 
-async function resolve(){
-let m=findMatches();
+async function resolve(list){
+while(list.length){
+combo++;showCombo(combo);impact();
+list.forEach(i=>{board[i].type=null;score+=10*combo});
+ui();await wait(120);
+fall();fill();draw();await wait(120);
+list=find();}
+busy=false}
 
-while(m.length){
+function impact(){let f=document.getElementById("flash");f.classList.add("active");navigator.vibrate?.(40);setTimeout(()=>f.classList.remove("active"),200)}
+function showCombo(c){let d=document.createElement("div");d.className="combo";d.innerText="x"+c;document.body.appendChild(d);setTimeout(()=>d.remove(),900)}
 
-m.forEach(i=>{
-board[i].el.classList.add("pop");
-board[i].type=null;
-score+=10;
-});
-
-updateHUD();
-await wait(200);
-
-fall();
-fill();
-draw();
-
-await wait(200);
-
-m=findMatches();
-}
-
-busy=false;
-}
-
-function fall(){
-for(let c=0;c<size;c++){
-let col=[];
-for(let r=size-1;r>=0;r--){
-let i=r*size+c;
-if(board[i].type) col.push(board[i].type);
-}
-
-for(let r=size-1;r>=0;r--){
-let i=r*size+c;
-board[i].type = col.shift() || null;
-}
-}
-}
-
-function fill(){
-for(let i=0;i<36;i++){
-if(!board[i].type) board[i].type=rand();
-}
-}
-
-function removeInitialMatches(){
-let m=findMatches();
-while(m.length){
-m.forEach(i=>board[i].type=rand());
-m=findMatches();
-}
-draw();
-}
-
-function updateHUD(){
-document.getElementById("score").innerText=score;
-document.getElementById("moves").innerText=moves;
-}
-
+function fall(){for(let c=0;c<size;c++){let col=[];for(let r=size-1;r>=0;r--){let i=r*size+c;if(board[i].type)col.push(board[i].type)}for(let r=size-1;r>=0;r--){board[r*size+c].type=col.shift()||null}}}
+function fill(){for(let i=0;i<36;i++)if(!board[i].type)board[i].type=rand()}
+function clean(){let m=find();while(m.length){m.forEach(i=>board[i].type=rand());m=find()}draw()}
+function ui(){score.innerText=score;movesEl.innerText=moves}
 function wait(ms){return new Promise(r=>setTimeout(r,ms))}
 
 init();
-
 </script>
-
 </body>
 </html>
